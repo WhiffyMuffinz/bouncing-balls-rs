@@ -7,6 +7,7 @@ pub struct Vector {
 
 impl Vector {
 
+
     pub fn repr(&self) -> String {
         let mut out = String::from("Vector with magnitude ");
         out += &self.magnitude.to_string();
@@ -34,12 +35,67 @@ impl Vector {
 
 
 pub struct Colour {
-    pub red: f64,
-    pub green: f64,
-    pub blue: f64,
+    red: f64,
+    green: f64,
+    blue: f64,
 
 }
 
 impl Colour {
-    
+    pub fn repr(&self) -> String {
+        let mut out = String::from("Red: ");
+        out += &self.red.to_string();
+        out += " Green: ";
+        out += &self.green.to_string();
+        out += " Blue: ";
+        out += &self.blue.to_string();
+        out
+
+    }
+
+    pub fn Copy() {
+
+    }
+}
+
+pub struct Ball {
+    pub colour: Colour,
+    pub mass: f64,
+    pub position_x: f64,
+    pub position_y: f64,
+    pub vector: Vector
+}
+
+
+impl Ball {
+    pub fn repr (&self) -> String {
+        let mut out = String::from("Ball with colour: ");
+        out += &self.colour.repr();
+        out += ", mass: ";
+        out += &self.mass.to_string();
+        out += ", position: (";
+        out += &self.position_x.to_string();
+        out += ", ";
+        out += &self.position_y.to_string();
+        out += ", and ";
+        out += &self.vector.repr();
+
+        out
+    }
+
+    pub fn get_position_x(&self) -> f64{
+        return self.position_x;
+    }
+
+    pub fn get_position_y(&self) -> f64 {
+        return self.position_y;
+    }
+
+    pub fn get_mass(&self) -> f64 {
+        return self.mass;
+    }
+
+    //pub fn get_colour(&self) -> Colour {
+    //    return self.colour;
+    //}
 }
