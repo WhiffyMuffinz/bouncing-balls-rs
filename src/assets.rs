@@ -30,7 +30,36 @@ impl Vector {
     }
 
     pub fn dot(self, other: &Vector) -> f64 {
-        0.0
+        self.get_x() * other.get_x() + self.get_y() * other.get_y()
+    }
+
+    pub fn multiply(mut self, scalar: f64) {
+        //compute direction and magnitude of vector
+        let theta = self.get_x().atan2(self.get_y());
+        let mut magnitude = (self.get_x() + self.get_y()).sqrt();
+
+        magnitude *= scalar;
+
+        //using the direction and magnitude, compute the components and set them
+        let tmp_x = magnitude * theta.cos();
+        let tmp_y = magnitude * theta.sin();
+
+        self.set_x(tmp_x);
+        self.set_y(tmp_y);
+    }
+
+    pub fn multiply_multiple(mut self, scalars: Vec<f64>) {
+        let theta = self.get_x().atan2(self.get_y());
+        let mut magnitude = (self.get_x() + self.get_y()).sqrt();
+
+        for scalar in scalars {
+            magnitude *= scalar;
+        }
+        let tmp_x = magnitude * theta.cos();
+        let tmp_y = magnitude * theta.sin();
+
+        self.set_x(tmp_x);
+        self.set_y(tmp_y);
     }
 }
 
@@ -92,6 +121,9 @@ impl Ball {
     pub fn get_colour(&self) -> &Colour {
         return &self.colour;
     }
+    pub fn get_vector(&self) -> &Vector {
+        &self.vector
+    }
 
     pub fn handle_walls(mut self) {
         let x = self.vector.get_x();
@@ -110,6 +142,4 @@ impl Ball {
             self.vector.set_y(y * -1.0);
         }
     }
-
-    pub fn collision(self, other: Ball) -> () {}
 }
