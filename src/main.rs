@@ -50,12 +50,14 @@ fn main() {
         position_x: (WINDOW_DIMENSTIONS[0] / 2) as f64,
         position_y: (WINDOW_DIMENSTIONS[1] / 2) as f64,
         vector: Vector { x: 1.0, y: 1.0 },
+        speed: 100.0,
     };
 
     while !rl.window_should_close() {
         let dt = rl.get_frame_time();
         let mut d = rl.begin_drawing(&thread);
-        b.update(WINDOW_DIMENSTIONS);
+        d.draw_fps(10, 10);
+        b.update(WINDOW_DIMENSTIONS, dt);
         d.clear_background(BG_COLOUR);
 
         b.render(&mut d);

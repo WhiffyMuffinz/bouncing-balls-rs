@@ -71,22 +71,23 @@ pub struct Ball {
     pub position_x: f64,
     pub position_y: f64,
     pub vector: Vector,
+    pub speed: f64,
 }
 
 impl Ball {
-    pub fn update(&mut self, window: [i32; 2]) {
-        self.position_x += self.vector.get_x();
-        self.position_y += self.vector.get_y();
+    pub fn update(&mut self, window: [i32; 2], dt: f32) {
+        self.position_x += self.vector.get_x() * dt as f64 * self.speed;
+        self.position_y += self.vector.get_y() * dt as f64 * self.speed;
         if self.position_x as f64 + self.mass >= window[0] as f64 {
             self.vector.x *= -1.0;
         }
         if self.position_y as f64 + self.mass >= window[1] as f64 {
             self.vector.y *= -1.0;
         }
-        if self.position_x + self.mass < 0.0 {
+        if self.position_x - self.mass < 0.0 {
             self.vector.x *= -1.0;
         }
-        if self.position_y as f64 + self.mass <= 0.0 {
+        if self.position_y as f64 - self.mass <= 0.0 {
             self.vector.y *= -1.0;
         }
     }
