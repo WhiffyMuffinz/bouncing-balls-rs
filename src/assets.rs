@@ -1,3 +1,5 @@
+use raylib::prelude::*;
+
 pub struct Vector {
     pub x: f64,
     pub y: f64,
@@ -63,26 +65,8 @@ impl Vector {
     }
 }
 
-pub struct Colour {
-    pub red: f64,
-    pub green: f64,
-    pub blue: f64,
-}
-
-impl Colour {
-    pub fn repr(&self) -> String {
-        let mut out = String::from("Red: ");
-        out += &self.red.to_string();
-        out += " Green: ";
-        out += &self.green.to_string();
-        out += " Blue: ";
-        out += &self.blue.to_string();
-        out
-    }
-}
-
 pub struct Ball {
-    pub colour: Colour,
+    pub colour: Color,
     pub mass: f64,
     pub position_x: f64,
     pub position_y: f64,
@@ -90,10 +74,24 @@ pub struct Ball {
 }
 
 impl Ball {
+    pub fn update(&mut self, window: [i32; 2]) {
+        self.position_x += self.vector.get_x();
+        self.position_y += self.vector.get_y();
+        if self.position_x as f64 + self.mass >= window[0] as f64 {
+            self.vector.x *= -1.0;
+        }
+        if self.position_y as f64 + self.mass >= window[1] as f64 {
+            self.vector.y *= -1.0;
+        }
+        if self.position_x + self.mass < 0.0 {
+            self.vector.x *= -1.0;
+        }
+        if self.position_y as f64 + self.mass <= 0.0 {
+            self.vector.y *= -1.0;
+        }
+    }
     pub fn repr(&self) -> String {
-        let mut out = String::from("Ball with colour: ");
-        out += &self.colour.repr();
-        out += ", mass: ";
+        let mut out = String::from("Ball with mass: ");
         out += &self.mass.to_string();
         out += ", position: (";
         out += &self.position_x.to_string();
@@ -104,6 +102,14 @@ impl Ball {
         out += ")";
 
         out
+    }
+    pub fn render(&self, d: &mut RaylibDrawHandle) {
+        d.draw_circle(
+            self.position_x as i32,
+            self.position_y as i32,
+            self.mass as f32,
+            self.colour,
+        )
     }
 
     pub fn get_position_x(&self) -> &f64 {
@@ -118,9 +124,6 @@ impl Ball {
         return &self.mass;
     }
 
-    pub fn get_colour(&self) -> &Colour {
-        return &self.colour;
-    }
     pub fn get_vector(&self) -> &Vector {
         &self.vector
     }

@@ -10,3 +10,4 @@ edition = "2018"
 
 [dependencies]
 raylib = "3.7.0"
+alea = "*"
