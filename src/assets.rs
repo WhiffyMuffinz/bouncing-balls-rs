@@ -104,6 +104,25 @@ impl Ball {
 
         out
     }
+
+    pub fn collision(&mut self, others: Vec<Ball>) -> () {
+        //calculate the distance between the circles
+        for other in others {
+            let c1x = self.get_position_x();
+            let c1y = self.get_position_y();
+            let c2x = other.get_position_x();
+            let c2y = other.get_position_y();
+            let dist_x = c1x - c2x;
+            let dist_y = c1y - c2y;
+            //if colliding
+            if (dist_x.powi(2) + dist_y.powi(2)).sqrt() <= self.get_mass() + other.get_mass() {
+                let mut unit_normal = Vector {
+                    x: self.get_position_x() - other.get_position_x(),
+                    y: self.get_position_y() - other.get_position_y(),
+                };
+            }
+        }
+    }
     pub fn render(&self, d: &mut RaylibDrawHandle) {
         d.draw_circle(
             self.position_x as i32,

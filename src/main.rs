@@ -9,36 +9,6 @@ const BG_COLOUR: Color = Color::new(0, 0, 0, 0);
 
 #[allow(dead_code)]
 
-fn collision(b: Ball, others: Vec<Ball>) -> () {
-    //calculate the distance between the circles
-    for other in others {
-        let c1x = b.get_position_x();
-        let c1y = b.get_position_y();
-        let c2x = other.get_position_x();
-        let c2y = other.get_position_y();
-        let dist_x = c1x - c2x;
-        let dist_y = c1y - c2y;
-        //if colliding
-        if (dist_x * dist_x + dist_y * dist_y) <= (b.get_mass() + other.get_mass()).powi(2) {
-            //saving values to local variables
-            let v1 = b.get_vector();
-            let v2 = other.get_vector();
-            let m1 = b.get_mass();
-            let m2 = other.get_mass();
-            let angle = (c1y - c2y).atan2(c1x - c2x);
-            let tangent_vector = Vector {
-                y: -(c2x - c1x),
-                x: c2y - c1y,
-            };
-            let relative_velocity = Vector {
-                x: (b.get_vector().get_x() - other.get_vector().get_x()),
-                y: (b.get_vector().get_y() - other.get_vector().get_y()),
-            };
-            let length = relative_velocity.dot(&tangent_vector);
-        }
-    }
-}
-
 fn main() {
     let (mut rl, thread) = raylib::init()
         .size(WINDOW_DIMENSTIONS[0], WINDOW_DIMENSTIONS[1])
