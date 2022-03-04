@@ -6,30 +6,52 @@ use raylib::prelude::*;
 
 const WINDOW_DIMENSTIONS: [i32; 2] = [1280, 720];
 const BG_COLOUR: Color = Color::new(0, 0, 0, 0);
+const NUM_BALLS: u8 = 2;
 
 #[allow(dead_code)]
+
+fn make_balls(num_balls: u8) -> Vec<Ball> {
+    let mut out = vec![];
+    for i in 0..num_balls {
+        let mut b: Ball = Ball {
+            colour: Color::new(
+                i32_less_than(256) as u8,
+                i32_less_than(256) as u8,
+                i32_less_than(256) as u8,
+                i32_less_than(256) as u8,
+            ),
+            mass: f64_less_than(10.0),
+            position_x: f64_less_than(WINDOW_DIMENSTIONS[0] as f64),
+            position_y: f64_less_than(WINDOW_DIMENSTIONS[1] as f64),
+            vector: Vector {
+                x: f64_less_than(1.0),
+                y: f64_less_than(1.0),
+            },
+            speed: 100.0,
+        };
+        out.push(b);
+    }
+    out
+}
 
 fn main() {
     let (mut rl, thread) = raylib::init()
         .size(WINDOW_DIMENSTIONS[0], WINDOW_DIMENSTIONS[1])
         .title("Balls for Bakas")
         .build();
-    let mut b: Ball = Ball {
-        colour: Color::new(255, 255, 255, 255),
-        mass: 10.0,
-        position_x: (WINDOW_DIMENSTIONS[0] / 2) as f64,
-        position_y: (WINDOW_DIMENSTIONS[1] / 2) as f64,
-        vector: Vector { x: 1.0, y: 1.0 },
-        speed: 100.0,
-    };
+    let mut balls = make_balls(NUM_BALLS);
 
     while !rl.window_should_close() {
+        let others = balls.clone();
         let dt = rl.get_frame_time();
         let mut d = rl.begin_drawing(&thread);
         d.draw_fps(10, 10);
-        b.update(WINDOW_DIMENSTIONS, dt);
+        for b in &mut balls {
+            b.update(WINDOW_DIMENSTIONS, dt, &others);
+        }
         d.clear_background(BG_COLOUR);
-
-        b.render(&mut d);
+        for b in &balls {
+            b.render(&mut d);
+        }
     }
 }

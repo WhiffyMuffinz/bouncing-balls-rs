@@ -1,10 +1,10 @@
 use raylib::prelude::*;
 
+#[derive(Debug, Copy, Clone)]
 pub struct Vector {
     pub x: f64,
     pub y: f64,
 }
-
 impl Vector {
     pub fn repr(&self) -> String {
         let mut out = String::from("Vector with components X: ");
@@ -31,11 +31,11 @@ impl Vector {
         self.y = y;
     }
 
-    pub fn dot(self, other: &Vector) -> f64 {
+    pub fn dot(&self, other: &Vector) -> f64 {
         self.get_x() * other.get_x() + self.get_y() * other.get_y()
     }
 
-    pub fn multiply(mut self, scalar: f64) {
+    pub fn multiply(&mut self, scalar: f64) {
         //compute direction and magnitude of vector
         let theta = self.get_x().atan2(self.get_y());
         let mut magnitude = (self.get_x() + self.get_y()).sqrt();
@@ -63,8 +63,30 @@ impl Vector {
         self.set_x(tmp_x);
         self.set_y(tmp_y);
     }
+    pub fn normalize(&mut self) {
+        let magnitude = self.get_magnitude();
+        self.set_x(self.get_x() / magnitude);
+        self.set_y(self.get_y() / magnitude);
+    }
+    pub fn get_magnitude(&self) -> f64 {
+        let x = self.get_x();
+        let y = self.get_y();
+        let magnitude = (x.powi(2) + y.powi(2)).sqrt();
+        magnitude
+    }
+    pub fn clone(&self) -> Vector {
+        Vector {
+            x: self.get_x(),
+            y: self.get_y(),
+        }
+    }
+    pub fn add(&mut self, other: Vector) {
+        self.set_x(self.get_x() + other.get_x());
+        self.set_y(self.get_y() + other.get_y());
+    }
 }
 
+#[derive(Debug, Copy, Clone)]
 pub struct Ball {
     pub colour: Color,
     pub mass: f64,
@@ -75,21 +97,11 @@ pub struct Ball {
 }
 
 impl Ball {
-    pub fn update(&mut self, window: [i32; 2], dt: f32) {
+    pub fn update(&mut self, window: [i32; 2], dt: f32, others: &Vec<Ball>) {
         self.position_x += self.vector.get_x() * dt as f64 * self.speed;
         self.position_y += self.vector.get_y() * dt as f64 * self.speed;
-        if self.position_x as f64 + self.mass >= window[0] as f64 {
-            self.vector.x *= -1.0;
-        }
-        if self.position_y as f64 + self.mass >= window[1] as f64 {
-            self.vector.y *= -1.0;
-        }
-        if self.position_x - self.mass < 0.0 {
-            self.vector.x *= -1.0;
-        }
-        if self.position_y as f64 - self.mass <= 0.0 {
-            self.vector.y *= -1.0;
-        }
+        self.handle_walls(window, dt);
+        self.collision(others);
     }
     pub fn repr(&self) -> String {
         let mut out = String::from("Ball with mass: ");
@@ -105,13 +117,17 @@ impl Ball {
         out
     }
 
-    pub fn collision(&mut self, others: Vec<Ball>) -> () {
+    pub fn collision(&mut self, others: &Vec<Ball>) -> () {
         //calculate the distance between the circles
         for other in others {
             let c1x = self.get_position_x();
             let c1y = self.get_position_y();
             let c2x = other.get_position_x();
             let c2y = other.get_position_y();
+            let v1 = self.get_vector();
+            let v2 = other.get_vector();
+            let m1 = self.vector.get_magnitude();
+            let m2 = self.vector.get_magnitude();
             let dist_x = c1x - c2x;
             let dist_y = c1y - c2y;
             //if colliding
@@ -120,6 +136,33 @@ impl Ball {
                     x: self.get_position_x() - other.get_position_x(),
                     y: self.get_position_y() - other.get_position_y(),
                 };
+                unit_normal.normalize();
+                let unit_tangent = Vector {
+                    x: -unit_normal.get_y(),
+                    y: unit_normal.get_x(),
+                };
+                let v1n = unit_normal.dot(v1);
+                let v2n = unit_normal.dot(v2);
+                let v1t = unit_tangent.dot(v1);
+                let v2t = unit_tangent.dot(v2);
+
+                let v_out_1 = (v1n * (m1 - m2) + 2.0 * m2 * v2n) / (m1 + m2);
+                let v_out_2 = (v2n * (m2 - m1) + 2.0 * m1 * v1n) / (m1 + m2);
+
+                let mut v_prime_1n = unit_normal.clone();
+                let mut v_prime_2n = unit_normal.clone();
+
+                let mut v_prime_1t = unit_tangent.clone();
+                let mut v_prime_2t = unit_tangent.clone();
+
+                v_prime_1n.multiply(v_out_1);
+                v_prime_2n.multiply(v_out_2);
+
+                v_prime_1t.multiply(v_out_1);
+                v_prime_2t.multiply(v_out_2);
+                v_prime_1n.add(v_prime_1t);
+                v_prime_2n.add(v_prime_2t);
+                self.vector = v_prime_1n;
             }
         }
     }
@@ -148,21 +191,18 @@ impl Ball {
         &self.vector
     }
 
-    pub fn handle_walls(mut self) {
-        let x = self.vector.get_x();
-        let y = self.vector.get_y();
-
-        if self.position_x < 0.0 {
-            self.vector.set_x(x * -1.0);
+    pub fn handle_walls(mut self, window: [i32; 2], dt: f32) {
+        if self.position_x as f64 + self.mass >= window[0] as f64 {
+            self.vector.x *= -1.0;
         }
-        if self.position_x > 1.0 {
-            self.vector.set_x(x * -1.0);
+        if self.position_y as f64 + self.mass >= window[1] as f64 {
+            self.vector.y *= -1.0;
         }
-        if self.position_y < 0.0 {
-            self.vector.set_y(y * -1.0);
+        if self.position_x - self.mass < 0.0 {
+            self.vector.x *= -1.0;
         }
-        if self.position_y > 1.0 {
-            self.vector.set_y(y * -1.0);
+        if self.position_y as f64 - self.mass <= 0.0 {
+            self.vector.y *= -1.0;
         }
     }
 }
