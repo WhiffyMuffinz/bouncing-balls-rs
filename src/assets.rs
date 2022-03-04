@@ -1,5 +1,9 @@
 use raylib::prelude::*;
 
+use std::fs::{read_to_string, File, OpenOptions};
+use std::io::Write;
+use std::path::Path;
+
 #[derive(Debug, Copy, Clone)]
 pub struct Vector {
     pub x: f64,
@@ -9,7 +13,7 @@ impl Vector {
     pub fn repr(&self) -> String {
         let mut out = String::from("Vector with components X: ");
         out += &self.x.to_string();
-        out += "Y: ";
+        out += ", Y: ";
         out += &self.y.to_string();
 
         out
@@ -97,11 +101,11 @@ pub struct Ball {
 }
 
 impl Ball {
-    pub fn update(&mut self, window: [i32; 2], dt: f32, others: &Vec<Ball>) {
+    pub fn update(&mut self, window: [i32; 2], dt: f32, others: &Vec<Ball>, debug: bool) {
         self.position_x += self.vector.get_x() * dt as f64 * self.speed;
         self.position_y += self.vector.get_y() * dt as f64 * self.speed;
-        self.handle_walls(window, dt);
-        self.collision(others);
+        self.handle_walls(window);
+        self.collision(others, debug);
     }
     pub fn repr(&self) -> String {
         let mut out = String::from("Ball with mass: ");
@@ -117,7 +121,7 @@ impl Ball {
         out
     }
 
-    pub fn collision(&mut self, others: &Vec<Ball>) -> () {
+    pub fn collision(&mut self, others: &Vec<Ball>, debug: bool) -> () {
         //calculate the distance between the circles
         for other in others {
             let c1x = self.get_position_x();
@@ -130,12 +134,68 @@ impl Ball {
             let m2 = self.vector.get_magnitude();
             let dist_x = c1x - c2x;
             let dist_y = c1y - c2y;
+            if debug {
+                let mut name: String = "log".to_owned();
+                name = name;
+                name = name + ".txt";
+                if !(Path::new(&name).exists()) {
+                    let mut f = File::create(&name).expect("unable to create file");
+                    println!("Created new file");
+                    write!(
+                        f,
+                        "x: {}, {}, {}, {}",
+                        (self.speed * x_comp * dt as f64),
+                        self.speed,
+                        x_comp,
+                        dt
+                    )
+                    .expect("Access is Denied.");
+                    write!(
+                        f,
+                        "\ty: {}, {}, {}, {}",
+                        (self.speed * x_comp * dt as f64),
+                        self.speed,
+                        y_comp,
+                        dt
+                    )
+                    .expect("Access is Denied.");
+                    write!(f, "\n").expect("Access is Denied.");
+                } else {
+                    let mut f = OpenOptions::new()
+                        .write(true)
+                        .read(true)
+                        .open(&name)
+                        .expect("Unable to Open File");
+                    let tmp = read_to_string(&name).expect("Access is Denied");
+                    write!(f, "{}", tmp).expect("Access is Denied");
+                    write!(
+                        f,
+                        "x: {}, {}, \t{}, {}",
+                        (self.speed * x_comp * dt as f64),
+                        self.speed,
+                        x_comp,
+                        dt
+                    )
+                    .expect("Access is Denied.");
+                    write!(
+                        f,
+                        "\ty: {}, {}, \t{}, {}",
+                        (self.speed * x_comp * dt as f64),
+                        self.speed,
+                        y_comp,
+                        dt
+                    )
+                    .expect("Access is Denied.");
+                    write!(f, "\n").expect("Access is Denied.");
+                }
+            }
             //if colliding
             if (dist_x.powi(2) + dist_y.powi(2)).sqrt() <= self.get_mass() + other.get_mass() {
                 let mut unit_normal = Vector {
                     x: self.get_position_x() - other.get_position_x(),
                     y: self.get_position_y() - other.get_position_y(),
                 };
+                println!("{}", unit_normal.repr());
                 unit_normal.normalize();
                 let unit_tangent = Vector {
                     x: -unit_normal.get_y(),
@@ -191,14 +251,14 @@ impl Ball {
         &self.vector
     }
 
-    pub fn handle_walls(mut self, window: [i32; 2], dt: f32) {
+    pub fn handle_walls(&mut self, window: [i32; 2]) {
         if self.position_x as f64 + self.mass >= window[0] as f64 {
             self.vector.x *= -1.0;
         }
         if self.position_y as f64 + self.mass >= window[1] as f64 {
             self.vector.y *= -1.0;
         }
-        if self.position_x - self.mass < 0.0 {
+        if self.position_x - self.mass <= 0.0 {
             self.vector.x *= -1.0;
         }
         if self.position_y as f64 - self.mass <= 0.0 {
