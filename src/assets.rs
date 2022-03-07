@@ -138,27 +138,22 @@ impl Ball {
                 let mut name: String = "log".to_owned();
                 name = name;
                 name = name + ".txt";
+                //todo!("finish writing to log file");
                 if !(Path::new(&name).exists()) {
                     let mut f = File::create(&name).expect("unable to create file");
                     println!("Created new file");
                     write!(
                         f,
-                        "x: {}, {}, {}, {}",
-                        (self.speed * x_comp * dt as f64),
-                        self.speed,
-                        x_comp,
-                        dt
+                        "Circle 1 position: ({}, {}), {}. \t Circle 2 position ({}, {}), {}",
+                        c1x,
+                        c1y,
+                        v1.repr(),
+                        c2x,
+                        c2y,
+                        v2.repr()
                     )
                     .expect("Access is Denied.");
-                    write!(
-                        f,
-                        "\ty: {}, {}, {}, {}",
-                        (self.speed * x_comp * dt as f64),
-                        self.speed,
-                        y_comp,
-                        dt
-                    )
-                    .expect("Access is Denied.");
+
                     write!(f, "\n").expect("Access is Denied.");
                 } else {
                     let mut f = OpenOptions::new()
@@ -170,22 +165,16 @@ impl Ball {
                     write!(f, "{}", tmp).expect("Access is Denied");
                     write!(
                         f,
-                        "x: {}, {}, \t{}, {}",
-                        (self.speed * x_comp * dt as f64),
-                        self.speed,
-                        x_comp,
-                        dt
+                        "Circle 1 position: ({}, {}), {}. \t Circle 2 position ({}, {}), {}",
+                        c1x,
+                        c1y,
+                        v1.repr(),
+                        c2x,
+                        c2y,
+                        v2.repr()
                     )
                     .expect("Access is Denied.");
-                    write!(
-                        f,
-                        "\ty: {}, {}, \t{}, {}",
-                        (self.speed * x_comp * dt as f64),
-                        self.speed,
-                        y_comp,
-                        dt
-                    )
-                    .expect("Access is Denied.");
+
                     write!(f, "\n").expect("Access is Denied.");
                 }
             }
@@ -195,7 +184,6 @@ impl Ball {
                     x: self.get_position_x() - other.get_position_x(),
                     y: self.get_position_y() - other.get_position_y(),
                 };
-                println!("{}", unit_normal.repr());
                 unit_normal.normalize();
                 let unit_tangent = Vector {
                     x: -unit_normal.get_y(),
