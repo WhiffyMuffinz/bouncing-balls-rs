@@ -85,8 +85,8 @@ impl Ball {
     pub fn update(&mut self, window: [i32; 2], dt: f32, others: &Vec<Ball>, debug: bool) {
         self.position_x += self.vector.get_x() * dt as f64 * self.speed;
         self.position_y += self.vector.get_y() * dt as f64 * self.speed;
-        self.handle_walls(window);
         self.collision(others, debug);
+        self.handle_walls(window);
     }
     pub fn repr(&self) -> String {
         let mut out = String::from("Ball with mass: ");
@@ -112,11 +112,11 @@ impl Ball {
                 let c2y = other.get_position_y();
                 let v1 = self.get_vector();
                 let v2 = other.get_vector();
-                let m1 = self.vector.get_magnitude();
-                let m2 = self.vector.get_magnitude();
+                let m1 = self.get_mass();
+                let m2 = self.get_mass();
                 let dist_x = c1x - c2x;
                 let dist_y = c1y - c2y;
-                if debug {
+                if !debug {
                     let mut name: String = "log".to_owned();
                     name = name;
                     name = name + ".txt";
@@ -162,6 +162,8 @@ impl Ball {
                 }
                 //if colliding
                 if (dist_x.powi(2) + dist_y.powi(2)).sqrt() <= self.get_mass() + other.get_mass() {
+                    //Issue seems to be because the particles are bouncing off each other's inner walls, and so they get stuck together.
+                    //TODO find a way to unstick the particles
                     let mut unit_normal = Vector {
                         x: self.get_position_x() - other.get_position_x(),
                         y: self.get_position_y() - other.get_position_y(),
