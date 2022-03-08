@@ -1,6 +1,6 @@
 mod assets;
 
-use alea::{f64_in_range, f64_less_than, i32_in_range, i32_less_than};
+use alea::{f64_in_range, f64_less_than, i32_in_range};
 use assets::{Ball, Vector};
 use raylib::prelude::*;
 
@@ -15,11 +15,11 @@ const MAX_BALL_SIZE: f64 = 20.0;
 fn make_balls(num_balls: u8) -> Vec<Ball> {
     let mut out = vec![];
     for i in 0..num_balls {
-        let mut b: Ball = Ball {
+        let b: Ball = Ball {
             colour: Color::new(
-                i32_less_than(256) as u8,
-                i32_less_than(256) as u8,
-                i32_less_than(256) as u8,
+                i32_in_range(128, 256) as u8,
+                i32_in_range(128, 256) as u8,
+                i32_in_range(128, 256) as u8,
                 i32_in_range(128, 256) as u8,
             ),
             mass: f64_in_range(5.0, MAX_BALL_SIZE),

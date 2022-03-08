@@ -64,10 +64,6 @@ impl Vector {
             y: self.get_y(),
         }
     }
-    pub fn add(&mut self, other: Vector) {
-        self.set_x(self.get_x() + other.get_x());
-        self.set_y(self.get_y() + other.get_y());
-    }
 }
 
 #[derive(Debug, Copy, Clone)]
@@ -165,39 +161,31 @@ impl Ball {
                     //Issue seems to be because the particles are bouncing off each other's inner walls, and so they get stuck together.
                     //TODO find a way to unstick the particles
                     let mut unit_normal = Vector {
-                        x: self.get_position_x() - other.get_position_x(),
-                        y: self.get_position_y() - other.get_position_y(),
+                        x: c1x - c2x,
+                        y: c1y - c2y,
                     };
                     unit_normal.normalize();
                     let unit_tangent = Vector {
                         x: -unit_normal.get_y(),
                         y: unit_normal.get_x(),
                     };
+
                     let v1n = unit_normal.dot(v1);
                     let v2n = unit_normal.dot(v2);
-                    let v1t = unit_tangent.dot(v1);
-                    let v2t = unit_tangent.dot(v2);
 
-                    let v_out_1 = (v1n * (m1 - m2) + 2.0 * m2 * v2n) / (m1 + m2);
-                    let v_out_2 = (v2n * (m2 - m1) + 2.0 * m1 * v1n) / (m1 + m2);
+                    let v_prime_1n = (v1n * (m1 - m2) + 2.0 * (m2 * v2n)) / (m1 + m2);
 
-                    let mut v_prime_1n = unit_normal.clone();
-                    let mut v_prime_2n = unit_normal.clone();
+                    let mut out_norm = unit_normal.clone();
+                    let mut out_tan = unit_tangent.clone();
 
-                    let mut v_prime_1t = unit_tangent.clone();
-                    let mut v_prime_2t = unit_tangent.clone();
+                    out_tan.multiply(v_prime_1n);
+                    out_norm.multiply(v_prime_1n);
 
-                    v_prime_1n.multiply(v_out_1);
-                    v_prime_2n.multiply(v_out_2);
-
-                    v_prime_1t.multiply(v_out_1);
-                    v_prime_2t.multiply(v_out_2);
-                    v_prime_1n.add(v_prime_1t);
-                    v_prime_2n.add(v_prime_2t);
-
-                    v_prime_1n.normalize();
-                    self.vector = v_prime_1n;
-                    continue;
+                    let out = Vector {
+                        x: out_norm.get_x() + out_tan.get_x(),
+                        y: out_norm.get_y() + out_tan.get_y(),
+                    };
+                    self.vector = out;
                 }
                 self.vector = self.vector
             }
