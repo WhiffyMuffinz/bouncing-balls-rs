@@ -75,7 +75,10 @@ impl Vector {
     pub fn get_magnitude(&self) -> f64 {
         let x = self.get_x();
         let y = self.get_y();
-        let magnitude = (x.powi(2) + y.powi(2)).sqrt();
+        let mut magnitude = (x.powi(2) + y.powi(2)).sqrt();
+        if magnitude.abs() < 1e-6 {
+            magnitude = 1.0;
+        }
         magnitude
     }
     pub fn clone(&self) -> Vector {
@@ -134,6 +137,9 @@ impl Ball {
             let m2 = self.vector.get_magnitude();
             let dist_x = c1x - c2x;
             let dist_y = c1y - c2y;
+            if (dist_x == 0.0 && dist_y == 0.0) {
+                continue;
+            }
             if debug {
                 let mut name: String = "log".to_owned();
                 name = name;
@@ -210,8 +216,12 @@ impl Ball {
                 v_prime_2t.multiply(v_out_2);
                 v_prime_1n.add(v_prime_1t);
                 v_prime_2n.add(v_prime_2t);
+
+                v_prime_1n.normalize();
                 self.vector = v_prime_1n;
+                //continue;
             }
+            self.vector = self.vector
         }
     }
     pub fn render(&self, d: &mut RaylibDrawHandle) {
