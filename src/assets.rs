@@ -40,33 +40,10 @@ impl Vector {
     }
 
     pub fn multiply(&mut self, scalar: f64) {
-        //compute direction and magnitude of vector
-        let theta = self.get_x().atan2(self.get_y());
-        let mut magnitude = (self.get_x() + self.get_y()).sqrt();
-
-        magnitude *= scalar;
-
-        //using the direction and magnitude, compute the components and set them
-        let tmp_x = magnitude * theta.cos();
-        let tmp_y = magnitude * theta.sin();
-
-        self.set_x(tmp_x);
-        self.set_y(tmp_y);
+        self.set_x(self.get_x() * scalar);
+        self.set_y(self.get_y() * scalar);
     }
 
-    pub fn multiply_multiple(mut self, scalars: Vec<f64>) {
-        let theta = self.get_x().atan2(self.get_y());
-        let mut magnitude = (self.get_x() + self.get_y()).sqrt();
-
-        for scalar in scalars {
-            magnitude *= scalar;
-        }
-        let tmp_x = magnitude * theta.cos();
-        let tmp_y = magnitude * theta.sin();
-
-        self.set_x(tmp_x);
-        self.set_y(tmp_y);
-    }
     pub fn normalize(&mut self) {
         let magnitude = self.get_magnitude();
         self.set_x(self.get_x() / magnitude);
@@ -101,6 +78,7 @@ pub struct Ball {
     pub position_y: f64,
     pub vector: Vector,
     pub speed: f64,
+    pub num: u8,
 }
 
 impl Ball {
@@ -125,112 +103,120 @@ impl Ball {
     }
 
     pub fn collision(&mut self, others: &Vec<Ball>, debug: bool) -> () {
-        //calculate the distance between the circles
         for other in others {
-            let c1x = self.get_position_x();
-            let c1y = self.get_position_y();
-            let c2x = other.get_position_x();
-            let c2y = other.get_position_y();
-            let v1 = self.get_vector();
-            let v2 = other.get_vector();
-            let m1 = self.vector.get_magnitude();
-            let m2 = self.vector.get_magnitude();
-            let dist_x = c1x - c2x;
-            let dist_y = c1y - c2y;
-            if (dist_x == 0.0 && dist_y == 0.0) {
-                continue;
-            }
-            if debug {
-                let mut name: String = "log".to_owned();
-                name = name;
-                name = name + ".txt";
-                //todo!("finish writing to log file");
-                if !(Path::new(&name).exists()) {
-                    let mut f = File::create(&name).expect("unable to create file");
-                    println!("Created new file");
-                    write!(
-                        f,
-                        "Circle 1 position: ({}, {}), {}. \t Circle 2 position ({}, {}), {}",
-                        c1x,
-                        c1y,
-                        v1.repr(),
-                        c2x,
-                        c2y,
-                        v2.repr()
-                    )
-                    .expect("Access is Denied.");
+            //calculate the distance between the circles
+            if self.num != other.num {
+                let c1x = self.get_position_x();
+                let c1y = self.get_position_y();
+                let c2x = other.get_position_x();
+                let c2y = other.get_position_y();
+                let v1 = self.get_vector();
+                let v2 = other.get_vector();
+                let m1 = self.vector.get_magnitude();
+                let m2 = self.vector.get_magnitude();
+                let dist_x = c1x - c2x;
+                let dist_y = c1y - c2y;
+                if debug {
+                    let mut name: String = "log".to_owned();
+                    name = name;
+                    name = name + ".txt";
+                    //todo!("finish writing to log file");
+                    if !(Path::new(&name).exists()) {
+                        let mut f = File::create(&name).expect("unable to create file");
+                        println!("Created new file");
+                        write!(
+                            f,
+                            "Circle 1 position: ({}, {}), {}. \t Circle 2 position ({}, {}), {}",
+                            c1x,
+                            c1y,
+                            v1.repr(),
+                            c2x,
+                            c2y,
+                            v2.repr()
+                        )
+                        .expect("Access is Denied.");
 
-                    write!(f, "\n").expect("Access is Denied.");
-                } else {
-                    let mut f = OpenOptions::new()
-                        .write(true)
-                        .read(true)
-                        .open(&name)
-                        .expect("Unable to Open File");
-                    let tmp = read_to_string(&name).expect("Access is Denied");
-                    write!(f, "{}", tmp).expect("Access is Denied");
-                    write!(
-                        f,
-                        "Circle 1 position: ({}, {}), {}. \t Circle 2 position ({}, {}), {}",
-                        c1x,
-                        c1y,
-                        v1.repr(),
-                        c2x,
-                        c2y,
-                        v2.repr()
-                    )
-                    .expect("Access is Denied.");
+                        write!(f, "\n").expect("Access is Denied.");
+                    } else {
+                        let mut f = OpenOptions::new()
+                            .write(true)
+                            .read(true)
+                            .open(&name)
+                            .expect("Unable to Open File");
+                        let tmp = read_to_string(&name).expect("Access is Denied");
+                        write!(f, "{}", tmp).expect("Access is Denied");
+                        write!(
+                            f,
+                            "Circle 1 position: ({}, {}), {}. \t Circle 2 position ({}, {}), {}",
+                            c1x,
+                            c1y,
+                            v1.repr(),
+                            c2x,
+                            c2y,
+                            v2.repr()
+                        )
+                        .expect("Access is Denied.");
 
-                    write!(f, "\n").expect("Access is Denied.");
+                        write!(f, "\n").expect("Access is Denied.");
+                    }
                 }
+                //if colliding
+                if (dist_x.powi(2) + dist_y.powi(2)).sqrt() <= self.get_mass() + other.get_mass() {
+                    let mut unit_normal = Vector {
+                        x: self.get_position_x() - other.get_position_x(),
+                        y: self.get_position_y() - other.get_position_y(),
+                    };
+                    unit_normal.normalize();
+                    let unit_tangent = Vector {
+                        x: -unit_normal.get_y(),
+                        y: unit_normal.get_x(),
+                    };
+                    let v1n = unit_normal.dot(v1);
+                    let v2n = unit_normal.dot(v2);
+                    let v1t = unit_tangent.dot(v1);
+                    let v2t = unit_tangent.dot(v2);
+
+                    let v_out_1 = (v1n * (m1 - m2) + 2.0 * m2 * v2n) / (m1 + m2);
+                    let v_out_2 = (v2n * (m2 - m1) + 2.0 * m1 * v1n) / (m1 + m2);
+
+                    let mut v_prime_1n = unit_normal.clone();
+                    let mut v_prime_2n = unit_normal.clone();
+
+                    let mut v_prime_1t = unit_tangent.clone();
+                    let mut v_prime_2t = unit_tangent.clone();
+
+                    v_prime_1n.multiply(v_out_1);
+                    v_prime_2n.multiply(v_out_2);
+
+                    v_prime_1t.multiply(v_out_1);
+                    v_prime_2t.multiply(v_out_2);
+                    v_prime_1n.add(v_prime_1t);
+                    v_prime_2n.add(v_prime_2t);
+
+                    v_prime_1n.normalize();
+                    self.vector = v_prime_1n;
+                    continue;
+                }
+                self.vector = self.vector
             }
-            //if colliding
-            if (dist_x.powi(2) + dist_y.powi(2)).sqrt() <= self.get_mass() + other.get_mass() {
-                let mut unit_normal = Vector {
-                    x: self.get_position_x() - other.get_position_x(),
-                    y: self.get_position_y() - other.get_position_y(),
-                };
-                unit_normal.normalize();
-                let unit_tangent = Vector {
-                    x: -unit_normal.get_y(),
-                    y: unit_normal.get_x(),
-                };
-                let v1n = unit_normal.dot(v1);
-                let v2n = unit_normal.dot(v2);
-                let v1t = unit_tangent.dot(v1);
-                let v2t = unit_tangent.dot(v2);
-
-                let v_out_1 = (v1n * (m1 - m2) + 2.0 * m2 * v2n) / (m1 + m2);
-                let v_out_2 = (v2n * (m2 - m1) + 2.0 * m1 * v1n) / (m1 + m2);
-
-                let mut v_prime_1n = unit_normal.clone();
-                let mut v_prime_2n = unit_normal.clone();
-
-                let mut v_prime_1t = unit_tangent.clone();
-                let mut v_prime_2t = unit_tangent.clone();
-
-                v_prime_1n.multiply(v_out_1);
-                v_prime_2n.multiply(v_out_2);
-
-                v_prime_1t.multiply(v_out_1);
-                v_prime_2t.multiply(v_out_2);
-                v_prime_1n.add(v_prime_1t);
-                v_prime_2n.add(v_prime_2t);
-
-                v_prime_1n.normalize();
-                self.vector = v_prime_1n;
-                //continue;
-            }
-            self.vector = self.vector
         }
     }
-    pub fn render(&self, d: &mut RaylibDrawHandle) {
+    pub fn render(&self, d: &mut RaylibDrawHandle, debug: bool) {
         d.draw_circle(
             self.position_x as i32,
             self.position_y as i32,
             self.mass as f32,
             self.colour,
-        )
+        );
+        if debug {
+            d.draw_line(
+                self.position_x as i32,
+                self.position_y as i32,
+                (self.position_x + self.vector.x * self.speed) as i32,
+                (self.position_y + self.vector.y * self.speed) as i32,
+                Color::GREEN,
+            )
+        }
     }
 
     pub fn get_position_x(&self) -> &f64 {

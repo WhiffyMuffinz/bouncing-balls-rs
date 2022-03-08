@@ -13,7 +13,7 @@ const DEBUG: bool = false;
 
 fn make_balls(num_balls: u8) -> Vec<Ball> {
     let mut out = vec![];
-    for _ in 0..num_balls {
+    for i in 0..num_balls {
         let mut b: Ball = Ball {
             colour: Color::new(
                 i32_less_than(256) as u8,
@@ -28,7 +28,8 @@ fn make_balls(num_balls: u8) -> Vec<Ball> {
                 x: (1.0 - f64_less_than(2.0)) / 1.0,
                 y: (1.0 - f64_less_than(2.0)) / 1.0,
             },
-            speed: 20.0,
+            speed: 100.0,
+            num: i,
         };
         out.push(b);
     }
@@ -53,7 +54,7 @@ fn main() {
         others = balls.clone();
         d.clear_background(BG_COLOUR);
         for b in &balls {
-            b.render(&mut d);
+            b.render(&mut d, DEBUG);
         }
     }
 }
