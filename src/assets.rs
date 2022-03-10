@@ -109,28 +109,20 @@ impl Ball {
                 let v1 = self.get_vector();
                 let v2 = other.get_vector();
                 let m1 = self.get_mass();
-                let m2 = self.get_mass();
+                let m2 = other.get_mass();
                 let dist_x = c1x - c2x;
                 let dist_y = c1y - c2y;
-                if !debug {
+                if debug {
                     let mut name: String = "log".to_owned();
-                    name = name;
+                    let n = (self.num as i32).to_string();
+                    name = name + &n;
                     name = name + ".txt";
                     //todo!("finish writing to log file");
                     if !(Path::new(&name).exists()) {
                         let mut f = File::create(&name).expect("unable to create file");
                         println!("Created new file");
-                        write!(
-                            f,
-                            "Circle 1 position: ({}, {}), {}. \t Circle 2 position ({}, {}), {}",
-                            c1x,
-                            c1y,
-                            v1.repr(),
-                            c2x,
-                            c2y,
-                            v2.repr()
-                        )
-                        .expect("Access is Denied.");
+                        write!(f, "Circle 1 {}. \t Circle 2  {}", v1.repr(), v2.repr())
+                            .expect("Access is Denied.");
 
                         write!(f, "\n").expect("Access is Denied.");
                     } else {
@@ -141,53 +133,48 @@ impl Ball {
                             .expect("Unable to Open File");
                         let tmp = read_to_string(&name).expect("Access is Denied");
                         write!(f, "{}", tmp).expect("Access is Denied");
-                        write!(
-                            f,
-                            "Circle 1 position: ({}, {}), {}. \t Circle 2 position ({}, {}), {}",
-                            c1x,
-                            c1y,
-                            v1.repr(),
-                            c2x,
-                            c2y,
-                            v2.repr()
-                        )
-                        .expect("Access is Denied.");
+                        write!(f, "Circle 1 {}. \t Circle 2  {}", v1.repr(), v2.repr())
+                            .expect("Access is Denied.");
 
                         write!(f, "\n").expect("Access is Denied.");
                     }
                 }
                 //if colliding
                 if (dist_x.powi(2) + dist_y.powi(2)).sqrt() <= self.get_mass() + other.get_mass() {
-                    //Issue seems to be because the particles are bouncing off each other's inner walls, and so they get stuck together.
-                    //TODO find a way to unstick the particles
-                    let mut unit_normal = Vector {
-                        x: c1x - c2x,
-                        y: c1y - c2y,
-                    };
-                    unit_normal.normalize();
-                    let unit_tangent = Vector {
-                        x: -unit_normal.get_y(),
-                        y: unit_normal.get_x(),
-                    };
+                    if true
+                    /*v1.dot(v2) >= 0.0*/
+                    {
+                        //Issue seems to be because the particles are bouncing off each other's inner walls, and so they get stuck together.
+                        //TODO find a way to unstick the particles
+                        let mut unit_normal = Vector {
+                            x: c1x - c2x,
+                            y: c1y - c2y,
+                        };
+                        unit_normal.normalize();
+                        let unit_tangent = Vector {
+                            x: -unit_normal.get_y(),
+                            y: unit_normal.get_x(),
+                        };
 
-                    let v1n = unit_normal.dot(v1);
-                    let v2n = unit_normal.dot(v2);
+                        let v1n = unit_normal.dot(v1);
+                        let v2n = unit_normal.dot(v2);
 
-                    let v_prime_1n = (v1n * (m1 - m2) + 2.0 * (m2 * v2n)) / (m1 + m2);
+                        let v_prime_1n = (v1n * (m1 - m2) + 2.0 * (m2 * v2n)) / (m1 + m2);
 
-                    let mut out_norm = unit_normal.clone();
-                    let mut out_tan = unit_tangent.clone();
+                        let mut out_norm = unit_normal.clone();
+                        let mut out_tan = unit_tangent.clone();
 
-                    out_tan.multiply(v_prime_1n);
-                    out_norm.multiply(v_prime_1n);
+                        out_tan.multiply(v_prime_1n);
+                        out_norm.multiply(v_prime_1n);
 
-                    let out = Vector {
-                        x: out_norm.get_x() + out_tan.get_x(),
-                        y: out_norm.get_y() + out_tan.get_y(),
-                    };
-                    self.vector = out;
+                        let out = Vector {
+                            x: out_norm.get_x() + out_tan.get_x(),
+                            y: out_norm.get_y() + out_tan.get_y(),
+                        };
+                        self.vector = out;
+                    }
+                    self.vector = self.vector
                 }
-                self.vector = self.vector
             }
         }
     }

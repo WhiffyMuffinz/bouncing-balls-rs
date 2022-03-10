@@ -26,10 +26,10 @@ fn make_balls(num_balls: u8) -> Vec<Ball> {
             position_x: f64_less_than(WINDOW_DIMENSTIONS[0] as f64 - MAX_BALL_SIZE),
             position_y: f64_less_than(WINDOW_DIMENSTIONS[1] as f64 - MAX_BALL_SIZE),
             vector: Vector {
-                x: (1.0 - f64_less_than(2.0)) / 1.0,
-                y: (1.0 - f64_less_than(2.0)) / 1.0,
+                x: (1.0 - f64_less_than(2.0)),
+                y: (1.0 - f64_less_than(2.0)),
             },
-            speed: 100.0,
+            speed: 150.0,
             num: i,
         };
         out.push(b);
