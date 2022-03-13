@@ -100,6 +100,53 @@ impl Ball {
 
     pub fn collision(&mut self, others: &Vec<Ball>, debug: bool) -> () {
         for other in others {
+            let c1x = self.get_position_x();
+            let c1y = self.get_position_y();
+            let c2x = other.get_position_x();
+            let c2y = other.get_position_y();
+            let v1 = self.get_vector();
+            let v2 = other.get_vector();
+            let m1 = self.get_mass();
+            let m2 = other.get_mass();
+            let dist_x = c1x - c2x;
+            let dist_y = c1y - c2y;
+            if !debug && self.num % 10 == 0 {
+                self.write_to_file(&v1, &v2);
+            }
+
+            if (dist_x.powi(2) + dist_y.powi(2)).sqrt() <= m1 + m2 {
+                let mut tangent_vector = Vector {
+                    x: v2.y - v1.y,
+                    y: -(v2.x - v1.x),
+                };
+                tangent_vector.normalize();
+                let relative_velocity = Vector {
+                    x: v2.x - v1.x,
+                    y: v2.y - v1.y,
+                };
+                let length = relative_velocity.dot(&tangent_vector);
+
+                let mut vel_comp_on_tangent = tangent_vector.clone();
+
+                vel_comp_on_tangent.multiply(length);
+
+                let vel_comp_perp_tangent = Vector {
+                    x: relative_velocity.x - vel_comp_on_tangent.x,
+                    y: relative_velocity.y - vel_comp_on_tangent.y,
+                };
+
+                let mut out = Vector {
+                    x: v1.x - vel_comp_perp_tangent.x,
+                    y: v1.y - vel_comp_perp_tangent.y,
+                };
+                out.normalize();
+                self.vector = out;
+            }
+        }
+    }
+
+    pub fn collision2(&mut self, others: &Vec<Ball>, debug: bool) -> () {
+        for other in others {
             //calculate the distance between the circles
             if self.num != other.num {
                 let c1x = self.get_position_x();
@@ -112,32 +159,8 @@ impl Ball {
                 let m2 = other.get_mass();
                 let dist_x = c1x - c2x;
                 let dist_y = c1y - c2y;
-                if debug {
-                    let mut name: String = "log".to_owned();
-                    let n = (self.num as i32).to_string();
-                    name = name + &n;
-                    name = name + ".txt";
-                    //todo!("finish writing to log file");
-                    if !(Path::new(&name).exists()) {
-                        let mut f = File::create(&name).expect("unable to create file");
-                        println!("Created new file");
-                        write!(f, "Circle 1 {}. \t Circle 2  {}", v1.repr(), v2.repr())
-                            .expect("Access is Denied.");
-
-                        write!(f, "\n").expect("Access is Denied.");
-                    } else {
-                        let mut f = OpenOptions::new()
-                            .write(true)
-                            .read(true)
-                            .open(&name)
-                            .expect("Unable to Open File");
-                        let tmp = read_to_string(&name).expect("Access is Denied");
-                        write!(f, "{}", tmp).expect("Access is Denied");
-                        write!(f, "Circle 1 {}. \t Circle 2  {}", v1.repr(), v2.repr())
-                            .expect("Access is Denied.");
-
-                        write!(f, "\n").expect("Access is Denied.");
-                    }
+                if debug && self.num == 1 {
+                    self.write_to_file(&v1, &v2);
                 }
                 //if colliding
                 if (dist_x.powi(2) + dist_y.powi(2)).sqrt() <= self.get_mass() + other.get_mass() {
@@ -193,6 +216,33 @@ impl Ball {
                 (self.position_y + self.vector.y * self.speed) as i32,
                 Color::GREEN,
             )
+        }
+    }
+    fn write_to_file(&self, v1: &Vector, v2: &Vector) {
+        let mut name: String = "log".to_owned();
+        let n = (self.num as i32).to_string();
+        name = name + &n;
+        name = name + ".txt";
+        //todo!("finish writing to log file");
+        if !(Path::new(&name).exists()) {
+            let mut f = File::create(&name).expect("unable to create file");
+            println!("Created new file");
+            write!(f, "Circle 1 {}. \t Circle 2  {}", v1.repr(), v2.repr())
+                .expect("Access is Denied.");
+
+            write!(f, "\n").expect("Access is Denied.");
+        } else {
+            let mut f = OpenOptions::new()
+                .write(true)
+                .read(true)
+                .open(&name)
+                .expect("Unable to Open File");
+            let tmp = read_to_string(&name).expect("Access is Denied");
+            write!(f, "{}", tmp).expect("Access is Denied");
+            write!(f, "Circle 1 {}. \t Circle 2  {}", v1.repr(), v2.repr())
+                .expect("Access is Denied.");
+
+            write!(f, "\n").expect("Access is Denied.");
         }
     }
 
