@@ -1,5 +1,6 @@
 use raylib::prelude::*;
 
+use libm::{atan2, cos, sin};
 use std::fs::{read_to_string, File, OpenOptions};
 use std::io::Write;
 use std::path::Path;
@@ -108,16 +109,14 @@ impl Ball {
             let v2 = other.get_vector();
             let m1 = self.get_mass();
             let m2 = other.get_mass();
-            let dist_x = c1x - c2x;
-            let dist_y = c1y - c2y;
             if !debug && self.num % 10 == 0 {
                 self.write_to_file(&v1, &v2);
             }
 
-            if (dist_x.powi(2) + dist_y.powi(2)).sqrt() <= m1 + m2 {
+            if (c2x - c1x) * (c2x - c1x) + (c2y - c1y) * (c2y - c1y) <= (m1 + m2) * (m1 + m2) {
                 let mut tangent_vector = Vector {
-                    x: v2.y - v1.y,
-                    y: -(v2.x - v1.x),
+                    x: c2x - c1x,
+                    y: -(c2y - c1y),
                 };
                 tangent_vector.normalize();
                 let relative_velocity = Vector {
@@ -144,60 +143,76 @@ impl Ball {
             }
         }
     }
+    fn reposition(&mut self, x: f64, y: f64, debug: bool) {
+        if debug && self.num == 1 {
+            println!(
+                "Reposition from ({},{}) to ({}, {})",
+                self.position_x, self.position_y, x, y
+            );
+        }
+        self.position_x = x;
+        self.position_y = y;
+    }
 
     pub fn collision2(&mut self, others: &Vec<Ball>, debug: bool) -> () {
         for other in others {
             //calculate the distance between the circles
             if self.num != other.num {
-                let c1x = self.get_position_x();
-                let c1y = self.get_position_y();
+                let c1x = self.position_x;
+                let c1y = self.position_y;
                 let c2x = other.get_position_x();
                 let c2y = other.get_position_y();
-                let v1 = self.get_vector();
+                let v1 = self.vector;
                 let v2 = other.get_vector();
-                let m1 = self.get_mass();
+                let m1 = self.mass;
                 let m2 = other.get_mass();
                 let dist_x = c1x - c2x;
                 let dist_y = c1y - c2y;
-                if debug && self.num == 1 {
+                if !debug && self.num == 1 {
                     self.write_to_file(&v1, &v2);
                 }
                 //if colliding
-                if (dist_x.powi(2) + dist_y.powi(2)).sqrt() <= self.get_mass() + other.get_mass() {
-                    if true
-                    /*v1.dot(v2) >= 0.0*/
-                    {
-                        //Issue seems to be because the particles are bouncing off each other's inner walls, and so they get stuck together.
-                        //TODO find a way to unstick the particles
-                        let mut unit_normal = Vector {
-                            x: c1x - c2x,
-                            y: c1y - c2y,
-                        };
-                        unit_normal.normalize();
-                        let unit_tangent = Vector {
-                            x: -unit_normal.get_y(),
-                            y: unit_normal.get_x(),
-                        };
+                if (c2x - c1x) * (c2x - c1x) + (c2y - c1y) * (c2y - c1y)
+                    <= (self.get_mass() + other.get_mass()) * (self.get_mass() + other.get_mass())
+                {
+                    //Issue seems to be because the particles are bouncing off each other's inner walls, and so they get stuck together.
+                    //TODO find a way to unstick the particles
+                    let angle = atan2(c2y - c1y, c2x - c1x);
+                    let move_dist = m2 + m1 - (dist_x.powi(2) + dist_y.powi(2)).sqrt();
 
-                        let v1n = unit_normal.dot(v1);
-                        let v2n = unit_normal.dot(v2);
+                    let out_x = c1x + cos(angle) * move_dist;
+                    let out_y = c1y + sin(angle) * move_dist;
 
-                        let v_prime_1n = (v1n * (m1 - m2) + 2.0 * (m2 * v2n)) / (m1 + m2);
+                    //self.reposition(out_x, out_y, debug);
+                    let mut unit_normal = Vector {
+                        x: c1x - c2x,
+                        y: c1y - c2y,
+                    };
+                    unit_normal.normalize();
+                    let unit_tangent = Vector {
+                        x: -unit_normal.get_y(),
+                        y: unit_normal.get_x(),
+                    };
 
-                        let mut out_norm = unit_normal.clone();
-                        let mut out_tan = unit_tangent.clone();
+                    let v1n = unit_normal.dot(&v1);
+                    let v2n = unit_normal.dot(v2);
 
-                        out_tan.multiply(v_prime_1n);
-                        out_norm.multiply(v_prime_1n);
+                    let v_prime_1n = (v1n * (m1 - m2) + 2.0 * (m2 * v2n)) / (m1 + m2);
 
-                        let out = Vector {
-                            x: out_norm.get_x() + out_tan.get_x(),
-                            y: out_norm.get_y() + out_tan.get_y(),
-                        };
-                        self.vector = out;
-                    }
-                    self.vector = self.vector
+                    let mut out_norm = unit_normal.clone();
+                    let mut out_tan = unit_tangent.clone();
+
+                    out_tan.multiply(v_prime_1n);
+                    out_norm.multiply(v_prime_1n);
+
+                    let out = Vector {
+                        x: out_norm.get_x() + out_tan.get_x(),
+                        y: out_norm.get_y() + out_tan.get_y(),
+                    };
+                    self.vector = out;
+                    self.vector.normalize();
                 }
+                self.vector = self.vector
             }
         }
     }
