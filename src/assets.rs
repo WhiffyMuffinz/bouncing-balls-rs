@@ -109,7 +109,7 @@ impl Ball {
             let v2 = other.get_vector();
             let m1 = self.get_mass();
             let m2 = other.get_mass();
-            if !debug && self.num % 10 == 0 {
+            if debug && self.num % 10 == 0 {
                 self.write_to_file(&v1, &v2);
             }
 
@@ -278,16 +278,17 @@ impl Ball {
     }
 
     pub fn handle_walls(&mut self, window: [i32; 2]) {
-        if self.position_x as f64 + self.mass >= window[0] as f64 {
+        //if the ball is intersecting and approaching the wall
+        if self.position_x as f64 + self.mass >= window[0] as f64 && self.vector.x > 0.0 {
             self.vector.x *= -1.0;
         }
-        if self.position_y as f64 + self.mass >= window[1] as f64 {
+        if self.position_y as f64 + self.mass >= window[1] as f64 && self.vector.y > 0.0 {
             self.vector.y *= -1.0;
         }
-        if self.position_x - self.mass <= 0.0 {
+        if self.position_x - self.mass <= 0.0 && self.vector.x < 0.0 {
             self.vector.x *= -1.0;
         }
-        if self.position_y as f64 - self.mass <= 0.0 {
+        if self.position_y as f64 - self.mass <= 0.0 && self.vector.y < 0.0 {
             self.vector.y *= -1.0;
         }
     }

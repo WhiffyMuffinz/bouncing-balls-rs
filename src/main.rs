@@ -4,10 +4,10 @@ use alea::{f64_in_range, f64_less_than, i32_in_range};
 use assets::{Ball, Vector};
 use raylib::prelude::*;
 
-const WINDOW_DIMENSTIONS: [i32; 2] = [1280, 720];
+const WINDOW_DIMENSTIONS: [i32; 2] = [2560, 1440];
 const BG_COLOUR: Color = Color::new(0, 0, 0, 0);
-const NUM_BALLS: u8 = 50;
-const DEBUG: bool = true;
+const NUM_BALLS: u8 = 250;
+const DEBUG: bool = false;
 const MAX_BALL_SIZE: f64 = 20.0;
 
 #[allow(dead_code)]
