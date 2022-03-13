@@ -11,4 +11,4 @@ edition = "2018"
 [dependencies]
 raylib = "3.7.0"
 alea = "0.2.2"
-libm = "0.2.2"
+
