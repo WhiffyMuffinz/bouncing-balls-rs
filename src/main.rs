@@ -37,6 +37,47 @@ fn make_balls(num_balls: u8) -> Vec<Ball> {
     out
 }
 
+fn collision(balls: &mut Vec<Ball>) {
+    for i in 0..balls.len() - 1 {
+        let mut b = balls[i];
+        let mut other = balls[i + 1];
+        let c1x = b.get_position_x();
+        let c1y = b.get_position_y();
+        let c2x = other.get_position_x();
+        let c2y = other.get_position_y();
+        let v1 = b.get_vector();
+        let v2 = other.get_vector();
+        let m1 = b.get_mass();
+        let m2 = other.get_mass();
+        if other.num != b.num
+            && (c2x - c1x) * (c2x - c1x) + (c2y - c1y) * (c2y - c1y) <= (m1 + m2) * (m1 + m2)
+        {
+            let mut tangent_vector = Vector {
+                x: c2x - c1x,
+                y: -(c2y - c1y),
+            };
+            tangent_vector.normalize();
+            let relative_velocity = Vector {
+                x: v2.x - v1.x,
+                y: v2.y - v1.y,
+            };
+            let length = relative_velocity.dot(&tangent_vector);
+            let mut vel_comp_on_tangent = tangent_vector.clone();
+            vel_comp_on_tangent.multiply(length);
+            let vel_comp_perp_tangent = Vector {
+                x: relative_velocity.x - vel_comp_on_tangent.x,
+                y: relative_velocity.y - vel_comp_on_tangent.y,
+            };
+            let mut out = Vector {
+                x: v1.x - vel_comp_perp_tangent.x,
+                y: v1.y - vel_comp_perp_tangent.y,
+            };
+            out.normalize();
+            b.vector = out;
+        }
+    }
+}
+
 fn main() {
     let (mut rl, thread) = raylib::init()
         .size(WINDOW_DIMENSTIONS[0], WINDOW_DIMENSTIONS[1])
