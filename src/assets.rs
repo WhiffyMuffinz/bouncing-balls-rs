@@ -66,7 +66,7 @@ impl Vector {
     }
 }
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Clone)]
 pub struct Ball {
     pub colour: Color,
     pub mass: f64,
@@ -74,7 +74,7 @@ pub struct Ball {
     pub position_y: f64,
     pub vector: Vector,
     pub speed: f64,
-    pub num: u8,
+    pub num: u32,
 }
 
 impl Ball {
@@ -86,6 +86,7 @@ impl Ball {
     }
 
     pub fn collision(&mut self, others: &Vec<Ball>, debug: bool) -> () {
+        //something to speed up broad phase
         for other in others {
             let c1x = self.get_position_x();
             let c1y = self.get_position_y();
