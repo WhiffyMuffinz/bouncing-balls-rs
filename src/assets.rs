@@ -85,6 +85,11 @@ impl Ball {
         self.handle_walls(window);
     }
 
+    pub fn walk(&mut self, dt: f32) {
+        self.position_x += self.vector.get_x() * dt as f64 * self.speed;
+        self.position_y += self.vector.get_y() * dt as f64 * self.speed;
+    }
+
     pub fn collision(&mut self, others: &Vec<Ball>, debug: bool) -> () {
         //something to speed up broad phase
         for other in others {
@@ -92,8 +97,8 @@ impl Ball {
             let c1y = self.get_position_y();
             let c2x = other.get_position_x();
             let c2y = other.get_position_y();
-            let v1 = self.get_vector();
-            let v2 = other.get_vector();
+            let v1 = self.get_velocity();
+            let v2 = other.get_velocity();
             let m1 = self.get_mass();
             let m2 = other.get_mass();
             if debug && self.num % 10 == 0 {
@@ -155,7 +160,6 @@ impl Ball {
         let n = (self.num as i32).to_string();
         name = name + &n;
         name = name + ".txt";
-        //todo!("finish writing to log file");
         if !(Path::new(&name).exists()) {
             let mut f = File::create(&name).expect("unable to create file");
             println!("Created new file");
@@ -190,7 +194,7 @@ impl Ball {
         return &self.mass;
     }
 
-    pub fn get_vector(&self) -> &Vector {
+    pub fn get_velocity(&self) -> &Vector {
         &self.vector
     }
 

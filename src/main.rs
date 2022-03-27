@@ -34,7 +34,6 @@ fn make_balls(num_balls: u32) -> Vec<Ball> {
     }
     out
 }
-#[allow(dead_code)]
 
 fn sweep_and_prune(balls: &Vec<Ball>) -> Vec<Vec<Ball>> {
     //returns vec of groups of possible collisions
@@ -93,7 +92,7 @@ fn sort_by_axis(balls: &Vec<Ball>) -> (Vec<Ball>, bool) {
     let mut var_x: [f64; 2] = [0.0, 0.0];
     let mut out = balls.clone();
     for _i in 0..3 {
-        let ind = i32_in_range(0, balls.len() as i32) as usize;
+        let ind = i32_in_range(0, (balls.len() - 1) as i32) as usize;
         if balls[ind].position_x >= var_x[1] {
             var_x[1] = balls[ind].position_x;
         } else if balls[ind].position_x <= var_x[0] {
@@ -181,6 +180,73 @@ fn partition_y(arr: &mut Vec<Ball>, low: isize, high: isize) -> isize {
     store_index
 }
 
+fn collision(arr: Vec<Vec<Ball>>) {
+    for mut coll in arr {
+        if coll.len() < 1 {
+            for i in 1..coll.len() {
+                let b1 = coll[i - 1].clone();
+                let b2 = coll[i].clone();
+                //distance between balls squared because square root is slow
+                let dist = (b1.position_x - b2.position_x).powi(2)
+                    + (b1.position_y - b2.position_y).powi(2);
+                //narrow phase collision check
+                if dist <= (b1.mass + b2.mass).powi(2) {
+                    let v1 = b1.get_velocity();
+                    let v2 = b2.get_velocity();
+                    let mut tangent_vector = Vector {
+                        x: b2.position_x - b1.position_x,
+                        y: -(b2.position_y - b1.position_y),
+                    };
+                    tangent_vector.normalize();
+                    let relative_velocity = Vector {
+                        x: v2.x - v1.x,
+                        y: v2.y - v1.y,
+                    };
+                    let length = relative_velocity.dot(&tangent_vector);
+
+                    let mut velocity_component_on_tangent = tangent_vector.clone();
+
+                    velocity_component_on_tangent.multiply(length);
+
+                    let velocity_component_perpendicular_to_tangent = Vector {
+                        x: relative_velocity.x - velocity_component_on_tangent.x,
+                        y: relative_velocity.y - velocity_component_on_tangent.y,
+                    };
+
+                    let mut out1 = Vector {
+                        x: v1.x - velocity_component_perpendicular_to_tangent.x,
+                        y: v1.y - velocity_component_perpendicular_to_tangent.y,
+                    };
+                    let mut out2 = Vector {
+                        x: v2.x + velocity_component_perpendicular_to_tangent.x,
+                        y: v2.y + velocity_component_perpendicular_to_tangent.y,
+                    };
+
+                    out1.normalize();
+                    out2.normalize();
+                    //apply the new computed vectors
+                    coll[i - 1].vector = out1;
+                    coll[i].vector = out2;
+                }
+            }
+        }
+    }
+}
+
+fn update(balls: &mut Vec<Ball>, balls2: &Vec<Ball>, dt: f32) {
+    let mut possible_collisions: Vec<Vec<Ball>> = Vec::new();
+    for ball in balls {
+        ball.walk(dt);
+        possible_collisions = sweep_and_prune(balls2);
+        for c in &possible_collisions {
+            println!("{:?}", c.len());
+        }
+        println!("\n");
+        collision(possible_collisions);
+        ball.handle_walls(WINDOW_DIMENSTIONS);
+    }
+}
+
 fn main() {
     let (mut rl, thread) = raylib::init()
         .size(WINDOW_DIMENSTIONS[0], WINDOW_DIMENSTIONS[1])
@@ -193,13 +259,7 @@ fn main() {
         let dt = rl.get_frame_time();
         let mut d = rl.begin_drawing(&thread);
         d.draw_fps(10, 10);
-        let mut pruned = sweep_and_prune(&balls);
-        for b in &mut balls {
-            b.update(WINDOW_DIMENSTIONS, dt, &others, DEBUG);
-            todo!(); /*TODO: move update function out of the object,
-                     rewrite collision function to take groups of possible collisions,
-                     fix occasional wierdness with collision function*/
-        }
+        update(&mut balls, &others, dt);
         others = balls.clone();
         d.clear_background(BG_COLOUR);
         for b in &balls {
