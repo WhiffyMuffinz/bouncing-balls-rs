@@ -78,29 +78,29 @@ pub struct Ball {
 }
 
 impl Ball {
+    #[allow(dead_code)]
     pub fn update(&mut self, window: [i32; 2], dt: f32, others: &Vec<Ball>, debug: bool) {
-        self.position_x += self.vector.get_x() * dt as f64 * self.speed;
-        self.position_y += self.vector.get_y() * dt as f64 * self.speed;
+        self.position_x += self.vector.x * dt as f64 * self.speed;
+        self.position_y += self.vector.y * dt as f64 * self.speed;
         self.collision(others, debug);
         self.handle_walls(window);
     }
 
     pub fn walk(&mut self, dt: f32) {
-        self.position_x += self.vector.get_x() * dt as f64 * self.speed;
-        self.position_y += self.vector.get_y() * dt as f64 * self.speed;
+        self.position_x += self.vector.x * dt as f64 * self.speed;
+        self.position_y += self.vector.y * dt as f64 * self.speed;
     }
-
     pub fn collision(&mut self, others: &Vec<Ball>, debug: bool) -> () {
         //something to speed up broad phase
         for other in others {
-            let c1x = self.get_position_x();
-            let c1y = self.get_position_y();
-            let c2x = other.get_position_x();
-            let c2y = other.get_position_y();
+            let c1x = self.position_x;
+            let c1y = self.position_y;
+            let c2x = other.position_x;
+            let c2y = other.position_y;
             let v1 = self.get_velocity();
             let v2 = other.get_velocity();
-            let m1 = self.get_mass();
-            let m2 = other.get_mass();
+            let m1 = self.mass;
+            let m2 = other.mass;
             if debug && self.num % 10 == 0 {
                 self.write_to_file(&v1, &v2);
             }
@@ -180,18 +180,6 @@ impl Ball {
 
             write!(f, "\n").expect("Access is Denied.");
         }
-    }
-
-    pub fn get_position_x(&self) -> &f64 {
-        return &self.position_x;
-    }
-
-    pub fn get_position_y(&self) -> &f64 {
-        return &self.position_y;
-    }
-
-    pub fn get_mass(&self) -> &f64 {
-        return &self.mass;
     }
 
     pub fn get_velocity(&self) -> &Vector {

@@ -35,85 +35,6 @@ fn make_balls(num_balls: u32) -> Vec<Ball> {
     out
 }
 
-fn sweep_and_prune(balls: &Vec<Ball>) -> Vec<Vec<Ball>> {
-    //returns vec of groups of possible collisions
-    let mut sorted = balls.clone();
-    let var: bool; //axis variable. true is x, false is y
-    (sorted, var) = sort_by_axis(&sorted);
-    let mut act_int: [f64; 2];
-    let mut out: Vec<Vec<Ball>> = Vec::new();
-    if var {
-        //sweep and prune by x-axis
-        act_int = [
-            sorted[0].position_x - sorted[0].mass,
-            sorted[0].position_x + sorted[0].mass,
-        ];
-        let mut added: Vec<Ball> = Vec::new();
-        added.push(sorted[0].clone());
-        for i in 1..sorted.len() {
-            if sorted[i].position_x - sorted[i].mass <= act_int[1] {
-                act_int[1] = sorted[i].position_x + sorted[i].mass;
-                added.push(sorted[i].clone()); //what
-            } else {
-                out.push(added.clone());
-                act_int = [
-                    sorted[i].position_x - sorted[i].mass,
-                    sorted[i].position_x + sorted[i].mass,
-                ];
-            }
-        }
-    } else {
-        //sweep and prune by y-axis
-        act_int = [
-            sorted[0].position_y - sorted[0].mass,
-            sorted[0].position_y + sorted[0].mass,
-        ];
-        let mut added: Vec<Ball> = Vec::new();
-        added.push(sorted[0].clone());
-        for i in 1..sorted.len() {
-            if sorted[i].position_y - sorted[i].mass <= act_int[1] {
-                act_int[1] = sorted[i].position_y + sorted[i].mass;
-                added.push(sorted[i].clone());
-            } else {
-                out.push(added.clone());
-                act_int = [
-                    sorted[i].position_y - sorted[i].mass,
-                    sorted[i].position_y + sorted[i].mass,
-                ];
-            }
-        }
-    }
-    out
-}
-
-fn sort_by_axis(balls: &Vec<Ball>) -> (Vec<Ball>, bool) {
-    //sorts by axis. returns sorted array, and boolean representing what axis it is sorted by
-    let mut var_y: [f64; 2] = [0.0, 0.0];
-    let mut var_x: [f64; 2] = [0.0, 0.0];
-    let mut out = balls.clone();
-    for _i in 0..3 {
-        let ind = i32_in_range(0, (balls.len() - 1) as i32) as usize;
-        if balls[ind].position_x >= var_x[1] {
-            var_x[1] = balls[ind].position_x;
-        } else if balls[ind].position_x <= var_x[0] {
-            var_x[0] = balls[ind].position_x;
-        }
-
-        if balls[ind].position_y >= var_y[1] {
-            var_y[1] = balls[ind].position_y;
-        } else if balls[ind].position_y <= var_y[0] {
-            var_y[0] = balls[ind].position_y;
-        }
-    }
-    let var = var_y[1] - var_y[0] > var_x[1] - var_x[0];
-    if var {
-        quick_sort(&mut out, true);
-    } else {
-        quick_sort(&mut out, false)
-    }
-    (out, var)
-}
-
 fn quick_sort(arr: &mut Vec<Ball>, var: bool) {
     let len = arr.len();
     _quick_sort(arr, 0, (len - 1) as isize, var);
@@ -180,6 +101,40 @@ fn partition_y(arr: &mut Vec<Ball>, low: isize, high: isize) -> isize {
     store_index
 }
 
+fn update(balls: &mut Vec<Ball>, balls2: &Vec<Ball>, dt: f32) {
+    let possible_collisions: Vec<Vec<Ball>> = sweep_and_prune(balls2);
+    collision(possible_collisions); //something in this function call is cloning the balls, and updating them, but not updating the source, so the ball collisions don't affect the rendered data.
+    for ball in balls {
+        ball.walk(dt);
+        println!("\n");
+        ball.handle_walls(WINDOW_DIMENSTIONS);
+    }
+}
+
+fn main() {
+    let (mut rl, thread) = raylib::init()
+        .size(WINDOW_DIMENSTIONS[0], WINDOW_DIMENSTIONS[1])
+        .title("Balls for Bakas")
+        .build();
+    let mut balls = make_balls(NUM_BALLS);
+    while !rl.window_should_close() {
+        let dt = rl.get_frame_time();
+        let mut d = rl.begin_drawing(&thread);
+        d.draw_fps(10, 10);
+        let balls2 = balls.clone();
+        update(&mut balls, &balls2, dt);
+        //for ball in &mut balls {
+        //    ball.update(WINDOW_DIMENSTIONS, dt, &balls2, DEBUG);
+        //}
+        d.clear_background(BG_COLOUR);
+        for b in &balls {
+            b.render(&mut d, DEBUG);
+        }
+    }
+}
+
+//Code Graveyard
+/*
 fn collision(arr: Vec<Vec<Ball>>) {
     for mut coll in arr {
         if coll.len() < 1 {
@@ -232,38 +187,85 @@ fn collision(arr: Vec<Vec<Ball>>) {
         }
     }
 }
+*/
 
-fn update(balls: &mut Vec<Ball>, balls2: &Vec<Ball>, dt: f32) {
-    let mut possible_collisions: Vec<Vec<Ball>> = Vec::new();
-    for ball in balls {
-        ball.walk(dt);
-        possible_collisions = sweep_and_prune(balls2);
-        for c in &possible_collisions {
-            println!("{:?}", c.len());
+/*
+fn sweep_and_prune(balls: &mut Vec<Ball>) -> Vec<Vec<&mut Ball>> {
+    //returns vec of groups of possible collisions
+    let (mut sorted, var) = sort_by_axis(&balls); //var is the axis variable. true is x, false is y
+    let mut act_int: [f64; 2];
+    let mut out: Vec<Vec<&mut Ball>> = Vec::new();
+    if var {
+        //sweep and prune by x-axis
+        act_int = [
+            sorted[0].position_x - sorted[0].mass,
+            sorted[0].position_x + sorted[0].mass,
+        ];
+        let mut added: Vec<&mut Ball> = Vec::new();
+        added.push(sorted[0]);
+        for i in 1..sorted.len() {
+            if sorted[i].position_x - sorted[i].mass <= act_int[1] {
+                act_int[1] = sorted[i].position_x + sorted[i].mass;
+                added.push(sorted[i]); //what
+            } else {
+                out.push(added);
+                act_int = [
+                    sorted[i].position_x - sorted[i].mass,
+                    sorted[i].position_x + sorted[i].mass,
+                ];
+            }
         }
-        println!("\n");
-        collision(possible_collisions);
-        ball.handle_walls(WINDOW_DIMENSTIONS);
-    }
-}
-
-fn main() {
-    let (mut rl, thread) = raylib::init()
-        .size(WINDOW_DIMENSTIONS[0], WINDOW_DIMENSTIONS[1])
-        .title("Balls for Bakas")
-        .build();
-    let mut balls = make_balls(NUM_BALLS);
-
-    let mut others = balls.clone();
-    while !rl.window_should_close() {
-        let dt = rl.get_frame_time();
-        let mut d = rl.begin_drawing(&thread);
-        d.draw_fps(10, 10);
-        update(&mut balls, &others, dt);
-        others = balls.clone();
-        d.clear_background(BG_COLOUR);
-        for b in &balls {
-            b.render(&mut d, DEBUG);
+    } else {
+        //sweep and prune by y-axis
+        act_int = [
+            sorted[0].position_y - sorted[0].mass,
+            sorted[0].position_y + sorted[0].mass,
+        ];
+        let mut added: Vec<Ball> = Vec::new();
+        added.push(sorted[0].clone());
+        for i in 1..sorted.len() {
+            if sorted[i].position_y - sorted[i].mass <= act_int[1] {
+                act_int[1] = sorted[i].position_y + sorted[i].mass;
+                added.push(sorted[i].clone());
+            } else {
+                out.push(added.clone());
+                act_int = [
+                    sorted[i].position_y - sorted[i].mass,
+                    sorted[i].position_y + sorted[i].mass,
+                ];
+            }
         }
     }
+    out
 }
+*/
+/*
+
+fn sort_by_axis(balls: &Vec<Ball>) -> (Vec<Ball>, bool) {
+    //sorts by axis. returns sorted array, and boolean representing what axis it is sorted by
+    let mut var_y: [f64; 2] = [0.0, 0.0];
+    let mut var_x: [f64; 2] = [0.0, 0.0];
+    let mut out = balls.clone();
+    for _i in 0..3 {
+        let ind = i32_in_range(0, (balls.len() - 1) as i32) as usize;
+        if balls[ind].position_x >= var_x[1] {
+            var_x[1] = balls[ind].position_x;
+        } else if balls[ind].position_x <= var_x[0] {
+            var_x[0] = balls[ind].position_x;
+        }
+
+        if balls[ind].position_y >= var_y[1] {
+            var_y[1] = balls[ind].position_y;
+        } else if balls[ind].position_y <= var_y[0] {
+            var_y[0] = balls[ind].position_y;
+        }
+    }
+    let var = var_y[1] - var_y[0] > var_x[1] - var_x[0];
+    if var {
+        quick_sort(&mut out, true);
+    } else {
+        quick_sort(&mut out, false)
+    }
+    (out, var)
+}
+*/
