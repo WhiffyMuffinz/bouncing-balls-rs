@@ -58,11 +58,21 @@ impl Vector {
         }
         magnitude
     }
+    pub fn multiply_out(&self, scalar: &f64) -> Vector {
+        Vector {
+            x: scalar.clone() * self.get_x(),
+            y: scalar.clone() * self.get_y(),
+        }
+    }
     pub fn clone(&self) -> Vector {
         Vector {
             x: self.get_x(),
             y: self.get_y(),
         }
+    }
+    pub fn add(&mut self, other: &Vector) {
+        self.set_x(self.get_x() + other.get_x());
+        self.set_y(self.get_y() + other.get_y());
     }
 }
 

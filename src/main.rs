@@ -8,7 +8,7 @@ const WINDOW_DIMENSTIONS: [i32; 2] = [500, 500];
 const BG_COLOUR: Color = Color::new(0, 0, 0, 0);
 const NUM_BALLS: u32 = 6;
 const DEBUG: bool = false;
-const MAX_BALL_SIZE: f64 = 20.0;
+const MAX_BALL_SIZE: f64 = 50.0;
 
 fn make_balls(num_balls: u32) -> Vec<Ball> {
     let mut out = vec![];
@@ -33,6 +33,27 @@ fn make_balls(num_balls: u32) -> Vec<Ball> {
         out.push(b);
     }
     out
+}
+fn make_balls_2() -> Vec<Ball> {
+    let b1 = Ball {
+        colour: Color::new(255, 0, 0, 255),
+        mass: 50.0,
+        position_x: 375.0,
+        position_y: 250.0,
+        vector: Vector { x: 1.0, y: 0.0 },
+        speed: 150.0,
+        num: 0,
+    };
+    let b2 = Ball {
+        colour: Color::new(0, 255, 0, 255),
+        mass: 50.0,
+        position_x: 125.0,
+        position_y: 500.0,
+        vector: Vector { x: -1.0, y: 0.30 },
+        speed: 150.0,
+        num: 1,
+    };
+    vec![b1, b2]
 }
 
 fn quick_sort(arr: &mut Vec<Ball>, var: bool) {
@@ -102,8 +123,8 @@ fn partition_y(arr: &mut Vec<Ball>, low: isize, high: isize) -> isize {
 }
 
 fn sort_by_axis(balls: &mut Vec<Ball>) -> bool {
-    let mut x_variation: [f64; 2] = [0.0, 0.0];
-    let mut y_variation: [f64; 2] = [0.0, 0.0];
+    let mut x_variation: [f64; 2] = [f64::MAX, 0.0];
+    let mut y_variation: [f64; 2] = [f64::MAX, 0.0];
 
     for _i in 0..3 {
         let ind = i32_in_range(0, balls.len() as i32 - 1) as usize;
@@ -127,66 +148,96 @@ fn sort_by_axis(balls: &mut Vec<Ball>) -> bool {
 }
 fn sweep_and_prune(balls: &mut Vec<Ball>) -> Vec<Vec<usize>> {
     let var = sort_by_axis(balls);
-    let mut act_int: [f64; 2] = [0.0, 0.0];
+    let mut act_int: [f64; 2];
     //outputs a vec that contains a group of the indeces of possible collisions between balls
     // meanig that index 0 of the main vec will contain a vec with some number of indeces that will reference the indeces of the main ball array
-    let mut out: Vec<Vec<usize>> = vec![];
+    let mut out: Vec<Vec<usize>> = Vec::new();
+    let mut added: Vec<usize> = Vec::new();
     if var {
+        act_int = [
+            balls[0].position_x - balls[0].mass,
+            balls[0].position_x + balls[0].mass,
+        ];
         //sweep along x-axis
-        let mut added: Vec<usize> = vec![];
-        for i in 0..(balls.len() - 1) {
+        for i in 0..balls.len() {
             let b = &balls[i];
+            //if overlaps with interval
             if b.position_x - b.mass < act_int[1] {
-                act_int[1] = b.position_x + b.mass;
+                //add to collision
                 added.push(i);
-            } else {
-                out.push(added.clone());
+                //update interval
                 act_int[0] = b.position_x - b.mass;
+                act_int[1] = b.position_x + b.mass;
+            } else {
+                //push collision to output
+                if added.len() > 1 {
+                    //println!("{}", added.len());
+                    out.push(added);
+                }
+                //update interval
+                act_int[0] = b.position_x - b.mass;
+                act_int[1] = b.position_x + b.mass;
+                //reset collision
                 added = vec![];
             }
         }
     } else {
         //sweep along y-axis
-        let mut added: Vec<usize> = vec![];
-        for i in 0..balls.len() - 1 {
+        act_int = [
+            balls[0].position_y - balls[0].mass,
+            balls[0].position_y + balls[0].mass,
+        ];
+        for i in 0..balls.len() {
             let b = &balls[i];
+
             if b.position_y - b.mass < act_int[1] {
+                act_int[0] = b.position_y - b.mass;
                 act_int[1] = b.position_y + b.mass;
                 added.push(i);
             } else {
-                out.push(added.clone());
+                if added.len() > 1 {
+                    //println!("{}", added.len());
+                    out.push(added);
+                }
                 act_int[0] = b.position_y - b.mass;
+                act_int[1] = b.position_y + b.mass;
                 added = vec![];
             }
         }
     }
+    //println!("{}[{},{}]", var, act_int[0], act_int[1]);
     out
 }
 
 fn handle_balls(balls: &mut Vec<Ball>, balls2: &Vec<Ball>) {
     let collisions = sweep_and_prune(balls);
+    //let collisions: Vec<Vec<usize>> = vec![vec![0, 1]];
     //loop over collisions and extract the balls that are colliding from balls2[]
     //then calculate the new vectors for those balls
     //then apply those vectors to the balls
+
     for collision in collisions {
-        if collision.len() > 1 && collision.len() <= 2 {
-            let velocity_1 = balls2[collision[0]].vector;
-            let velocity_2 = balls2[collision[1]].vector;
-            let mass_1 = balls2[collision[0]].mass;
-            let mass_2 = balls2[collision[1]].mass;
+        //if collision.len() > 1 {
+        for i in 0..=collision.len() - 1 {
+            println!("trying");
+            let velocity_1 = balls2[collision[i + 1]].vector;
+            let velocity_2 = balls2[collision[i]].vector;
+            let mass_1 = balls2[collision[i + 1]].mass;
+            let mass_2 = balls2[collision[i]].mass;
             let position_1 = [
-                balls2[collision[0]].position_x,
-                balls2[collision[0]].position_y,
+                balls2[collision[i + 1]].position_x,
+                balls2[collision[i + 1]].position_y,
             ];
             let position_2 = [
-                balls2[collision[1]].position_x,
-                balls2[collision[1]].position_y,
+                balls2[collision[i]].position_x,
+                balls2[collision[i]].position_y,
             ];
             //if the distance between the balls is less than the sum of their radii and the space between them isn't increasing
-            if (position_1[0] - position_2[0]).powi(2) + (position_1[1] - position_2[1]).powi(2)
-                < (mass_1 + mass_2).powi(2)
-                && velocity_1.dot(&velocity_2) > 0.0
+            if ((position_1[0] - position_2[0]).powi(2) + (position_1[1] - position_2[1]).powi(2))
+                .sqrt()
+                < (mass_1 + mass_2)
             {
+                print!("collision");
                 //calculate the new vectors
                 let mut unit_normal = Vector {
                     x: position_1[0] - position_2[0],
@@ -201,16 +252,34 @@ fn handle_balls(balls: &mut Vec<Ball>, balls2: &Vec<Ball>) {
                 let velocity_2_tangent = velocity_2.dot(&unit_tangent);
                 let velocity_1_normal = velocity_1.dot(&unit_normal);
                 let velocity_2_normal = velocity_2.dot(&unit_normal);
+                let v_prime_1_tangent = velocity_1_tangent;
+                let v_prime_2_tangent = velocity_2_tangent;
+
+                let v_prime_1_normal = (velocity_1_normal * (mass_1 - mass_2)
+                    + 2.0 * mass_2 * velocity_2_normal)
+                    / (mass_1 + mass_2);
+                let v_prime_2_normal = (velocity_2_normal * (mass_2 - mass_1)
+                    + 2.0 * mass_1 * velocity_1_normal)
+                    / (mass_1 + mass_2);
+                let mut out_norm_1 = unit_normal.multiply_out(&v_prime_1_normal);
+                let mut out_norm_2 = unit_normal.multiply_out(&v_prime_2_normal);
+                let out_tan_1 = unit_tangent.multiply_out(&v_prime_1_tangent);
+                let out_tan_2 = unit_tangent.multiply_out(&v_prime_2_tangent);
+
+                out_norm_1.add(&out_tan_1);
+                out_norm_2.add(&out_tan_2);
+                balls[collision[i + 1]].vector = out_norm_1;
+                balls[collision[i]].vector = out_norm_2;
             }
         }
     }
 }
+//}
 
 fn update(balls: &mut Vec<Ball>, balls2: &Vec<Ball>, dt: f32) {
     handle_balls(balls, balls2);
     for ball in balls {
         ball.walk(dt);
-        println!("\n");
         ball.handle_walls(WINDOW_DIMENSTIONS);
     }
 }
@@ -220,7 +289,7 @@ fn main() {
         .size(WINDOW_DIMENSTIONS[0], WINDOW_DIMENSTIONS[1])
         .title("Balls for Bakas")
         .build();
-    let mut balls = make_balls(NUM_BALLS);
+    let mut balls = make_balls_2();
     while !rl.window_should_close() {
         let dt = rl.get_frame_time();
         let mut d = rl.begin_drawing(&thread);
@@ -236,140 +305,3 @@ fn main() {
         }
     }
 }
-
-//Code Graveyard
-/*
-fn collision(arr: Vec<Vec<Ball>>) {
-    for mut coll in arr {
-        if coll.len() < 1 {
-            for i in 1..coll.len() {
-                let b1 = coll[i - 1].clone();
-                let b2 = coll[i].clone();
-                //distance between balls squared because square root is slow
-                let dist = (b1.position_x - b2.position_x).powi(2)
-                    + (b1.position_y - b2.position_y).powi(2);
-                //narrow phase collision check
-                if dist <= (b1.mass + b2.mass).powi(2) {
-                    let v1 = b1.get_velocity();
-                    let v2 = b2.get_velocity();
-                    let mut tangent_vector = Vector {
-                        x: b2.position_x - b1.position_x,
-                        y: -(b2.position_y - b1.position_y),
-                    };
-                    tangent_vector.normalize();
-                    let relative_velocity = Vector {
-                        x: v2.x - v1.x,
-                        y: v2.y - v1.y,
-                    };
-                    let length = relative_velocity.dot(&tangent_vector);
-
-                    let mut velocity_component_on_tangent = tangent_vector.clone();
-
-                    velocity_component_on_tangent.multiply(length);
-
-                    let velocity_component_perpendicular_to_tangent = Vector {
-                        x: relative_velocity.x - velocity_component_on_tangent.x,
-                        y: relative_velocity.y - velocity_component_on_tangent.y,
-                    };
-
-                    let mut out1 = Vector {
-                        x: v1.x - velocity_component_perpendicular_to_tangent.x,
-                        y: v1.y - velocity_component_perpendicular_to_tangent.y,
-                    };
-                    let mut out2 = Vector {
-                        x: v2.x + velocity_component_perpendicular_to_tangent.x,
-                        y: v2.y + velocity_component_perpendicular_to_tangent.y,
-                    };
-
-                    out1.normalize();
-                    out2.normalize();
-                    //apply the new computed vectors
-                    coll[i - 1].vector = out1;
-                    coll[i].vector = out2;
-                }
-            }
-        }
-    }
-}
-*/
-
-/*
-fn sweep_and_prune(balls: &mut Vec<Ball>) -> Vec<Vec<&mut Ball>> {
-    //returns vec of groups of possible collisions
-    let (mut sorted, var) = sort_by_axis(&balls); //var is the axis variable. true is x, false is y
-    let mut act_int: [f64; 2];
-    let mut out: Vec<Vec<&mut Ball>> = Vec::new();
-    if var {
-        //sweep and prune by x-axis
-        act_int = [
-            sorted[0].position_x - sorted[0].mass,
-            sorted[0].position_x + sorted[0].mass,
-        ];
-        let mut added: Vec<&mut Ball> = Vec::new();
-        added.push(sorted[0]);
-        for i in 1..sorted.len() {
-            if sorted[i].position_x - sorted[i].mass <= act_int[1] {
-                act_int[1] = sorted[i].position_x + sorted[i].mass;
-                added.push(sorted[i]); //what
-            } else {
-                out.push(added);
-                act_int = [
-                    sorted[i].position_x - sorted[i].mass,
-                    sorted[i].position_x + sorted[i].mass,
-                ];
-            }
-        }
-    } else {
-        //sweep and prune by y-axis
-        act_int = [
-            sorted[0].position_y - sorted[0].mass,
-            sorted[0].position_y + sorted[0].mass,
-        ];
-        let mut added: Vec<Ball> = Vec::new();
-        added.push(sorted[0].clone());
-        for i in 1..sorted.len() {
-            if sorted[i].position_y - sorted[i].mass <= act_int[1] {
-                act_int[1] = sorted[i].position_y + sorted[i].mass;
-                added.push(sorted[i].clone());
-            } else {
-                out.push(added.clone());
-                act_int = [
-                    sorted[i].position_y - sorted[i].mass,
-                    sorted[i].position_y + sorted[i].mass,
-                ];
-            }
-        }
-    }
-    out
-}
-*/
-
-/*
-fn sort_by_axis(balls: &Vec<Ball>) -> (Vec<Ball>, bool) {
-    //sorts by axis. returns sorted array, and boolean representing what axis it is sorted by
-    let mut var_y: [f64; 2] = [0.0, 0.0];
-    let mut var_x: [f64; 2] = [0.0, 0.0];
-    let mut out = balls.clone();
-    for _i in 0..3 {
-        let ind = i32_in_range(0, (balls.len() - 1) as i32) as usize;
-        if balls[ind].position_x >= var_x[1] {
-            var_x[1] = balls[ind].position_x;
-        } else if balls[ind].position_x <= var_x[0] {
-            var_x[0] = balls[ind].position_x;
-        }
-
-        if balls[ind].position_y >= var_y[1] {
-            var_y[1] = balls[ind].position_y;
-        } else if balls[ind].position_y <= var_y[0] {
-            var_y[0] = balls[ind].position_y;
-        }
-    }
-    let var = var_y[1] - var_y[0] > var_x[1] - var_x[0];
-    if var {
-        quick_sort(&mut out, true);
-    } else {
-        quick_sort(&mut out, false)
-    }
-    (out, var)
-}
-*/
