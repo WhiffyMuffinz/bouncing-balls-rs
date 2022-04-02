@@ -38,22 +38,31 @@ fn make_balls_2() -> Vec<Ball> {
     let b1 = Ball {
         colour: Color::new(255, 0, 0, 255),
         mass: 50.0,
-        position_x: 375.0,
+        position_x: 300.0,
         position_y: 250.0,
-        vector: Vector { x: 1.0, y: 0.0 },
+        vector: Vector { x: 0.0, y: 0.1 },
         speed: 150.0,
         num: 0,
     };
     let b2 = Ball {
         colour: Color::new(0, 255, 0, 255),
         mass: 50.0,
-        position_x: 125.0,
-        position_y: 500.0,
-        vector: Vector { x: -1.0, y: 0.30 },
+        position_x: 200.0,
+        position_y: 250.0,
+        vector: Vector { x: 1.0, y: 0.0 },
         speed: 150.0,
         num: 1,
     };
-    vec![b1, b2]
+    let b3 = Ball {
+        colour: Color::new(0, 0, 255, 255),
+        mass: 50.0,
+        position_x: 100.0,
+        position_y: 250.0,
+        vector: Vector { x: 0.0, y: 1.0 },
+        speed: 150.0,
+        num: 2,
+    };
+    vec![b1, b2, b3]
 }
 
 fn quick_sort(arr: &mut Vec<Ball>, var: bool) {
@@ -158,54 +167,65 @@ fn sweep_and_prune(balls: &mut Vec<Ball>) -> Vec<Vec<usize>> {
             balls[0].position_x - balls[0].mass,
             balls[0].position_x + balls[0].mass,
         ];
-        //sweep along x-axis
-        for i in 0..balls.len() {
+        let mut i = 0;
+        while i < balls.len() {
             let b = &balls[i];
-            //if overlaps with interval
-            if b.position_x - b.mass < act_int[1] {
-                //add to collision
+            //see if the particle intersects with the active interval
+            if b.position_x - b.mass <= act_int[1] {
+                //update the interval
+                act_int[1] = b.position_x + b.mass;
+                //push particle to collision
                 added.push(i);
-                //update interval
-                act_int[0] = b.position_x - b.mass;
-                act_int[1] = b.position_x + b.mass;
-            } else {
-                //push collision to output
-                if added.len() > 1 {
-                    //println!("{}", added.len());
+                if added.len() == 2 {
                     out.push(added);
+                    added = Vec::new();
                 }
-                //update interval
+            } else {
+                //update active interval
+                out.push(added.clone());
+                //print!("{:?}", act_int);
                 act_int[0] = b.position_x - b.mass;
                 act_int[1] = b.position_x + b.mass;
-                //reset collision
-                added = vec![];
+                //println!("{:?}", act_int);
+                //println!("{:?}", added.len());
+                //reset collision vec
+                added.clear();
             }
+            if out.len() == 0 {
+                out.push(added.clone());
+            }
+            i += 1;
         }
     } else {
-        //sweep along y-axis
         act_int = [
             balls[0].position_y - balls[0].mass,
             balls[0].position_y + balls[0].mass,
         ];
         for i in 0..balls.len() {
             let b = &balls[i];
-
-            if b.position_y - b.mass < act_int[1] {
-                act_int[0] = b.position_y - b.mass;
+            //see if the particle intersects with the active interval
+            if b.position_y - b.mass <= act_int[1] {
+                //update the interval
                 act_int[1] = b.position_y + b.mass;
+                //push particle to collision
                 added.push(i);
             } else {
-                if added.len() > 1 {
-                    //println!("{}", added.len());
-                    out.push(added);
-                }
+                //update active interval
+                out.push(added.clone());
+                //print!("{:?}", act_int);
                 act_int[0] = b.position_y - b.mass;
                 act_int[1] = b.position_y + b.mass;
-                added = vec![];
+                //println!("{:?}", act_int);
+                //println!("{:?}", added.len());
+                //reset collision vec
+                added.clear();
+            }
+            if out.len() == 0 {
+                out.push(added.clone());
             }
         }
     }
-    //println!("{}[{},{}]", var, act_int[0], act_int[1]);
+    println!("{:?}", out.len());
     out
 }
 
@@ -217,64 +237,65 @@ fn handle_balls(balls: &mut Vec<Ball>, balls2: &Vec<Ball>) {
     //then apply those vectors to the balls
 
     for collision in collisions {
-        //if collision.len() > 1 {
-        for i in 0..=collision.len() - 1 {
-            println!("trying");
-            let velocity_1 = balls2[collision[i + 1]].vector;
-            let velocity_2 = balls2[collision[i]].vector;
-            let mass_1 = balls2[collision[i + 1]].mass;
-            let mass_2 = balls2[collision[i]].mass;
-            let position_1 = [
-                balls2[collision[i + 1]].position_x,
-                balls2[collision[i + 1]].position_y,
-            ];
-            let position_2 = [
-                balls2[collision[i]].position_x,
-                balls2[collision[i]].position_y,
-            ];
-            //if the distance between the balls is less than the sum of their radii and the space between them isn't increasing
-            if ((position_1[0] - position_2[0]).powi(2) + (position_1[1] - position_2[1]).powi(2))
-                .sqrt()
-                < (mass_1 + mass_2)
-            {
-                print!("collision");
-                //calculate the new vectors
-                let mut unit_normal = Vector {
-                    x: position_1[0] - position_2[0],
-                    y: position_1[1] - position_2[1],
-                };
-                unit_normal.normalize();
-                let unit_tangent = Vector {
-                    x: -unit_normal.y,
-                    y: unit_normal.x,
-                };
-                let velocity_1_tangent = velocity_1.dot(&unit_tangent);
-                let velocity_2_tangent = velocity_2.dot(&unit_tangent);
-                let velocity_1_normal = velocity_1.dot(&unit_normal);
-                let velocity_2_normal = velocity_2.dot(&unit_normal);
-                let v_prime_1_tangent = velocity_1_tangent;
-                let v_prime_2_tangent = velocity_2_tangent;
+        if collision.len() > 1 {
+            for i in 0..collision.len() - 1 {
+                let velocity_1 = balls2[collision[i + 1]].vector;
+                let velocity_2 = balls2[collision[i]].vector;
+                let mass_1 = balls2[collision[i + 1]].mass;
+                let mass_2 = balls2[collision[i]].mass;
+                let position_1 = [
+                    balls2[collision[i + 1]].position_x,
+                    balls2[collision[i + 1]].position_y,
+                ];
+                let position_2 = [
+                    balls2[collision[i]].position_x,
+                    balls2[collision[i]].position_y,
+                ];
+                //if the distance between the balls is less than the sum of their radii and the space between them isn't increasing
+                if velocity_1.dot(&velocity_2) <= 0.0
+                    && ((position_1[0] - position_2[0]).powi(2)
+                        + (position_1[1] - position_2[1]).powi(2))
+                    .sqrt()
+                        < (mass_1 + mass_2)
+                {
+                    print!("collision");
+                    //calculate the new vectors
+                    let mut unit_normal = Vector {
+                        x: position_1[0] - position_2[0],
+                        y: position_1[1] - position_2[1],
+                    };
+                    unit_normal.normalize();
+                    let unit_tangent = Vector {
+                        x: -unit_normal.y,
+                        y: unit_normal.x,
+                    };
+                    let velocity_1_tangent = velocity_1.dot(&unit_tangent);
+                    let velocity_2_tangent = velocity_2.dot(&unit_tangent);
+                    let velocity_1_normal = velocity_1.dot(&unit_normal);
+                    let velocity_2_normal = velocity_2.dot(&unit_normal);
+                    let v_prime_1_tangent = velocity_1_tangent;
+                    let v_prime_2_tangent = velocity_2_tangent;
 
-                let v_prime_1_normal = (velocity_1_normal * (mass_1 - mass_2)
-                    + 2.0 * mass_2 * velocity_2_normal)
-                    / (mass_1 + mass_2);
-                let v_prime_2_normal = (velocity_2_normal * (mass_2 - mass_1)
-                    + 2.0 * mass_1 * velocity_1_normal)
-                    / (mass_1 + mass_2);
-                let mut out_norm_1 = unit_normal.multiply_out(&v_prime_1_normal);
-                let mut out_norm_2 = unit_normal.multiply_out(&v_prime_2_normal);
-                let out_tan_1 = unit_tangent.multiply_out(&v_prime_1_tangent);
-                let out_tan_2 = unit_tangent.multiply_out(&v_prime_2_tangent);
+                    let v_prime_1_normal = (velocity_1_normal * (mass_1 - mass_2)
+                        + 2.0 * mass_2 * velocity_2_normal)
+                        / (mass_1 + mass_2);
+                    let v_prime_2_normal = (velocity_2_normal * (mass_2 - mass_1)
+                        + 2.0 * mass_1 * velocity_1_normal)
+                        / (mass_1 + mass_2);
+                    let mut out_norm_1 = unit_normal.multiply_out(&v_prime_1_normal);
+                    let mut out_norm_2 = unit_normal.multiply_out(&v_prime_2_normal);
+                    let out_tan_1 = unit_tangent.multiply_out(&v_prime_1_tangent);
+                    let out_tan_2 = unit_tangent.multiply_out(&v_prime_2_tangent);
 
-                out_norm_1.add(&out_tan_1);
-                out_norm_2.add(&out_tan_2);
-                balls[collision[i + 1]].vector = out_norm_1;
-                balls[collision[i]].vector = out_norm_2;
+                    out_norm_1.add(&out_tan_1);
+                    out_norm_2.add(&out_tan_2);
+                    balls[collision[i + 1]].vector = out_norm_1;
+                    balls[collision[i]].vector = out_norm_2;
+                }
             }
         }
     }
 }
-//}
 
 fn update(balls: &mut Vec<Ball>, balls2: &Vec<Ball>, dt: f32) {
     handle_balls(balls, balls2);
@@ -289,6 +310,7 @@ fn main() {
         .size(WINDOW_DIMENSTIONS[0], WINDOW_DIMENSTIONS[1])
         .title("Balls for Bakas")
         .build();
+    //let mut balls = make_balls(NUM_BALLS);
     let mut balls = make_balls_2();
     while !rl.window_should_close() {
         let dt = rl.get_frame_time();
