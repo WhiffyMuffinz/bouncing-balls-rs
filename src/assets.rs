@@ -148,7 +148,7 @@ impl Ball {
         }
     }
 
-    pub fn render(&self, d: &mut RaylibDrawHandle, debug: bool) {
+    pub fn render(&self, d: &mut RaylibDrawHandle, debug: bool, axis_variable: bool) {
         d.draw_circle(
             self.position_x as i32,
             self.position_y as i32,
@@ -162,7 +162,39 @@ impl Ball {
                 (self.position_x + self.vector.x * self.speed) as i32,
                 (self.position_y + self.vector.y * self.speed) as i32,
                 Color::GREEN,
-            )
+            );
+
+            if axis_variable {
+                d.draw_line(
+                    (self.position_x - self.mass) as i32,
+                    self.position_y as i32,
+                    (self.position_x - self.mass) as i32,
+                    0,
+                    self.colour,
+                );
+                d.draw_line(
+                    (self.position_x + self.mass) as i32,
+                    self.position_y as i32,
+                    (self.position_x + self.mass) as i32,
+                    0,
+                    self.colour,
+                )
+            } else {
+                d.draw_line(
+                    self.position_x as i32,
+                    (self.position_y - self.mass) as i32,
+                    0,
+                    (self.position_y - self.mass) as i32,
+                    self.colour,
+                );
+                d.draw_line(
+                    self.position_x as i32,
+                    (self.position_y + self.mass) as i32,
+                    0,
+                    (self.position_y + self.mass) as i32,
+                    self.colour,
+                );
+            }
         }
     }
     fn write_to_file(&self, v1: &Vector, v2: &Vector) {

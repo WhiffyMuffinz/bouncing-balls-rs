@@ -7,7 +7,7 @@ use raylib::prelude::*;
 const WINDOW_DIMENSTIONS: [i32; 2] = [500, 500];
 const BG_COLOUR: Color = Color::new(0, 0, 0, 0);
 const NUM_BALLS: u32 = 6;
-const DEBUG: bool = false;
+const DEBUG: bool = true;
 const MAX_BALL_SIZE: f64 = 50.0;
 
 fn make_balls(num_balls: u32) -> Vec<Ball> {
@@ -40,7 +40,7 @@ fn make_balls_2() -> Vec<Ball> {
         mass: 50.0,
         position_x: 300.0,
         position_y: 250.0,
-        vector: Vector { x: 0.0, y: 0.1 },
+        vector: Vector { x: 0.0, y: 0.0 },
         speed: 150.0,
         num: 0,
     };
@@ -49,7 +49,7 @@ fn make_balls_2() -> Vec<Ball> {
         mass: 50.0,
         position_x: 200.0,
         position_y: 250.0,
-        vector: Vector { x: 1.0, y: 0.0 },
+        vector: Vector { x: 0.0, y: 0.0 },
         speed: 150.0,
         num: 1,
     };
@@ -58,7 +58,7 @@ fn make_balls_2() -> Vec<Ball> {
         mass: 50.0,
         position_x: 100.0,
         position_y: 250.0,
-        vector: Vector { x: 0.0, y: 1.0 },
+        vector: Vector { x: 0.0, y: 0.0 },
         speed: 150.0,
         num: 2,
     };
@@ -151,15 +151,15 @@ fn sort_by_axis(balls: &mut Vec<Ball>) -> bool {
         }
     }
 
-    let var = x_variation[1] - x_variation[0] > y_variation[1] - y_variation[0];
+    let var = true;
+    //let var = x_variation[1] - x_variation[0] > y_variation[1] - y_variation[0];
     quick_sort(balls, var);
     var
 }
-fn sweep_and_prune(balls: &mut Vec<Ball>) -> Vec<Vec<usize>> {
+fn sweep_and_prune(balls: &mut Vec<Ball>) -> (Vec<Vec<usize>>, bool) {
     let var = sort_by_axis(balls);
     let mut act_int: [f64; 2];
     //outputs a vec that contains a group of the indeces of possible collisions between balls
-    // meanig that index 0 of the main vec will contain a vec with some number of indeces that will reference the indeces of the main ball array
     let mut out: Vec<Vec<usize>> = Vec::new();
     let mut added: Vec<usize> = Vec::new();
     if var {
@@ -167,8 +167,7 @@ fn sweep_and_prune(balls: &mut Vec<Ball>) -> Vec<Vec<usize>> {
             balls[0].position_x - balls[0].mass,
             balls[0].position_x + balls[0].mass,
         ];
-        let mut i = 0;
-        while i < balls.len() {
+        for i in 0..balls.len() {
             let b = &balls[i];
             //see if the particle intersects with the active interval
             if b.position_x - b.mass <= act_int[1] {
@@ -176,25 +175,18 @@ fn sweep_and_prune(balls: &mut Vec<Ball>) -> Vec<Vec<usize>> {
                 act_int[1] = b.position_x + b.mass;
                 //push particle to collision
                 added.push(i);
-                if added.len() == 2 {
-                    out.push(added);
-                    added = Vec::new();
-                }
             } else {
                 //update active interval
                 out.push(added.clone());
-                //print!("{:?}", act_int);
+
                 act_int[0] = b.position_x - b.mass;
                 act_int[1] = b.position_x + b.mass;
-                //println!("{:?}", act_int);
-                //println!("{:?}", added.len());
                 //reset collision vec
                 added.clear();
             }
-            if out.len() == 0 {
-                out.push(added.clone());
-            }
-            i += 1;
+        }
+        if out.len() == 0 {
+            out.push(added.clone());
         }
     } else {
         act_int = [
@@ -203,35 +195,34 @@ fn sweep_and_prune(balls: &mut Vec<Ball>) -> Vec<Vec<usize>> {
         ];
         for i in 0..balls.len() {
             let b = &balls[i];
-            //see if the particle intersects with the active interval
+            //if the particle is intersecting the active interval
             if b.position_y - b.mass <= act_int[1] {
                 //update the interval
                 act_int[1] = b.position_y + b.mass;
                 //push particle to collision
                 added.push(i);
+
+            //if the particle isn't in the interval
             } else {
                 //update active interval
                 out.push(added.clone());
-                //print!("{:?}", act_int);
                 act_int[0] = b.position_y - b.mass;
                 act_int[1] = b.position_y + b.mass;
-                //println!("{:?}", act_int);
-                //println!("{:?}", added.len());
                 //reset collision vec
                 added.clear();
             }
-            if out.len() == 0 {
-                out.push(added.clone());
-            }
+        }
+        if out.len() == 0 {
+            out.push(added.clone());
         }
     }
-    println!("{:?}", out.len());
-    out
+
+    (out, var)
 }
 
-fn handle_balls(balls: &mut Vec<Ball>, balls2: &Vec<Ball>) {
-    let collisions = sweep_and_prune(balls);
-    //let collisions: Vec<Vec<usize>> = vec![vec![0, 1]];
+fn handle_balls(balls: &mut Vec<Ball>) -> bool {
+    let (collisions, var) = sweep_and_prune(balls);
+    let balls2 = balls.clone();
     //loop over collisions and extract the balls that are colliding from balls2[]
     //then calculate the new vectors for those balls
     //then apply those vectors to the balls
@@ -252,13 +243,25 @@ fn handle_balls(balls: &mut Vec<Ball>, balls2: &Vec<Ball>) {
                     balls2[collision[i]].position_y,
                 ];
                 //if the distance between the balls is less than the sum of their radii and the space between them isn't increasing
+                //
                 if velocity_1.dot(&velocity_2) <= 0.0
                     && ((position_1[0] - position_2[0]).powi(2)
                         + (position_1[1] - position_2[1]).powi(2))
-                    .sqrt()
-                        < (mass_1 + mass_2)
+                        <= (mass_1 + mass_2).powi(2)
                 {
-                    print!("collision");
+                    if var {
+                        print!("x ");
+                    } else {
+                        print!("y ");
+                    }
+                    println!(
+                        "collision between nums {}, {} at indeces {},{}, collision length {}",
+                        balls2[collision[i]].num,
+                        balls2[collision[i + 1]].num,
+                        collision[i],
+                        collision[i + 1],
+                        collision.len()
+                    );
                     //calculate the new vectors
                     let mut unit_normal = Vector {
                         x: position_1[0] - position_2[0],
@@ -295,14 +298,16 @@ fn handle_balls(balls: &mut Vec<Ball>, balls2: &Vec<Ball>) {
             }
         }
     }
+    var
 }
 
-fn update(balls: &mut Vec<Ball>, balls2: &Vec<Ball>, dt: f32) {
-    handle_balls(balls, balls2);
+fn update(balls: &mut Vec<Ball>, dt: f32) -> bool {
+    let var = handle_balls(balls);
     for ball in balls {
         ball.walk(dt);
         ball.handle_walls(WINDOW_DIMENSTIONS);
     }
+    var
 }
 
 fn main() {
@@ -310,20 +315,18 @@ fn main() {
         .size(WINDOW_DIMENSTIONS[0], WINDOW_DIMENSTIONS[1])
         .title("Balls for Bakas")
         .build();
-    //let mut balls = make_balls(NUM_BALLS);
-    let mut balls = make_balls_2();
+    let mut balls = make_balls(NUM_BALLS);
+    // let mut balls = make_balls_2();
     while !rl.window_should_close() {
         let dt = rl.get_frame_time();
         let mut d = rl.begin_drawing(&thread);
+
         d.draw_fps(10, 10);
-        let balls2 = balls.clone();
-        update(&mut balls, &balls2, dt);
-        //for ball in &mut balls {
-        //    ball.update(WINDOW_DIMENSTIONS, dt, &balls2, DEBUG);
-        //}
+        let var = update(&mut balls, dt);
+
         d.clear_background(BG_COLOUR);
         for b in &balls {
-            b.render(&mut d, DEBUG);
+            b.render(&mut d, DEBUG, var);
         }
     }
 }
