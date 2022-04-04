@@ -4,11 +4,11 @@ use alea::{f64_in_range, f64_less_than, i32_in_range};
 use assets::{Ball, Vector};
 use raylib::prelude::*;
 
-const WINDOW_DIMENSTIONS: [i32; 2] = [500, 500];
+const WINDOW_DIMENSTIONS: [i32; 2] = [2240, 1260];
 const BG_COLOUR: Color = Color::new(0, 0, 0, 0);
-const NUM_BALLS: u32 = 6;
-const DEBUG: bool = true;
-const MAX_BALL_SIZE: f64 = 50.0;
+const NUM_BALLS: u32 = 500;
+const DEBUG: bool = false;
+const MAX_BALL_SIZE: f64 = 25.0;
 
 fn make_balls(num_balls: u32) -> Vec<Ball> {
     let mut out = vec![];
@@ -34,18 +34,19 @@ fn make_balls(num_balls: u32) -> Vec<Ball> {
     }
     out
 }
+
 fn make_balls_2() -> Vec<Ball> {
     let b1 = Ball {
         colour: Color::new(255, 0, 0, 255),
         mass: 50.0,
-        position_x: 300.0,
+        position_x: 350.0,
         position_y: 250.0,
-        vector: Vector { x: 0.0, y: 0.0 },
+        vector: Vector { x: 1.0, y: 0.0 },
         speed: 150.0,
         num: 0,
     };
     let b2 = Ball {
-        colour: Color::new(0, 255, 0, 255),
+        colour: Color::new(0, 255, 255, 255),
         mass: 50.0,
         position_x: 200.0,
         position_y: 250.0,
@@ -58,7 +59,7 @@ fn make_balls_2() -> Vec<Ball> {
         mass: 50.0,
         position_x: 100.0,
         position_y: 250.0,
-        vector: Vector { x: 0.0, y: 0.0 },
+        vector: Vector { x: 0.0, y: 1.0 },
         speed: 150.0,
         num: 2,
     };
@@ -156,6 +157,7 @@ fn sort_by_axis(balls: &mut Vec<Ball>) -> bool {
     quick_sort(balls, var);
     var
 }
+
 fn sweep_and_prune(balls: &mut Vec<Ball>) -> (Vec<Vec<usize>>, bool) {
     let var = sort_by_axis(balls);
     let mut act_int: [f64; 2];
@@ -167,53 +169,23 @@ fn sweep_and_prune(balls: &mut Vec<Ball>) -> (Vec<Vec<usize>>, bool) {
             balls[0].position_x - balls[0].mass,
             balls[0].position_x + balls[0].mass,
         ];
-        for i in 0..balls.len() {
+        let mut i = 0;
+        while i < balls.len() && added.len() < 2 {
             let b = &balls[i];
-            //see if the particle intersects with the active interval
             if b.position_x - b.mass <= act_int[1] {
-                //update the interval
-                act_int[1] = b.position_x + b.mass;
-                //push particle to collision
                 added.push(i);
+                act_int[1] = b.position_x + b.mass;
             } else {
-                //update active interval
                 out.push(added.clone());
-
+                added = Vec::new();
                 act_int[0] = b.position_x - b.mass;
                 act_int[1] = b.position_x + b.mass;
-                //reset collision vec
-                added.clear();
             }
+            i += 1;
         }
         if out.len() == 0 {
             out.push(added.clone());
-        }
-    } else {
-        act_int = [
-            balls[0].position_y - balls[0].mass,
-            balls[0].position_y + balls[0].mass,
-        ];
-        for i in 0..balls.len() {
-            let b = &balls[i];
-            //if the particle is intersecting the active interval
-            if b.position_y - b.mass <= act_int[1] {
-                //update the interval
-                act_int[1] = b.position_y + b.mass;
-                //push particle to collision
-                added.push(i);
-
-            //if the particle isn't in the interval
-            } else {
-                //update active interval
-                out.push(added.clone());
-                act_int[0] = b.position_y - b.mass;
-                act_int[1] = b.position_y + b.mass;
-                //reset collision vec
-                added.clear();
-            }
-        }
-        if out.len() == 0 {
-            out.push(added.clone());
+            added = Vec::new();
         }
     }
 
@@ -243,11 +215,10 @@ fn handle_balls(balls: &mut Vec<Ball>) -> bool {
                     balls2[collision[i]].position_y,
                 ];
                 //if the distance between the balls is less than the sum of their radii and the space between them isn't increasing
-                //
-                if velocity_1.dot(&velocity_2) <= 0.0
-                    && ((position_1[0] - position_2[0]).powi(2)
-                        + (position_1[1] - position_2[1]).powi(2))
-                        <= (mass_1 + mass_2).powi(2)
+                // velocity_1.dot(&velocity_2) <= 0.0 &&
+                if ((position_1[0] - position_2[0]).powi(2)
+                    + (position_1[1] - position_2[1]).powi(2))
+                    <= (mass_1 + mass_2).powi(2)
                 {
                     if var {
                         print!("x ");
