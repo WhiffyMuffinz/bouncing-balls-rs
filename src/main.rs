@@ -4,9 +4,9 @@ use alea::{f64_in_range, f64_less_than, i32_in_range};
 use assets::{Ball, Vector};
 use raylib::prelude::*;
 
-const WINDOW_DIMENSTIONS: [i32; 2] = [2240, 1260];
+const WINDOW_DIMENSTIONS: [i32; 2] = [700, 700];
 const BG_COLOUR: Color = Color::new(0, 0, 0, 0);
-const NUM_BALLS: u32 = 500;
+const NUM_BALLS: u32 = 25;
 const DEBUG: bool = false;
 const MAX_BALL_SIZE: f64 = 25.0;
 
@@ -170,11 +170,16 @@ fn sweep_and_prune(balls: &mut Vec<Ball>) -> (Vec<Vec<usize>>, bool) {
             balls[0].position_x + balls[0].mass,
         ];
         let mut i = 0;
-        while i < balls.len() && added.len() < 2 {
+        while i < balls.len() {
             let b = &balls[i];
-            if b.position_x - b.mass <= act_int[1] {
+            if b.position_x - b.mass <= act_int[1] || b.position_x + b.mass >= act_int[0] {
                 added.push(i);
                 act_int[1] = b.position_x + b.mass;
+                if added.len() >= 2 {
+                    out.push(added);
+                    added = Vec::new();
+                    i -= 1;
+                }
             } else {
                 out.push(added.clone());
                 added = Vec::new();
@@ -272,8 +277,66 @@ fn handle_balls(balls: &mut Vec<Ball>) -> bool {
     var
 }
 
+fn handle_balls_2(balls: &mut Vec<Ball>) -> bool {
+    let balls2 = balls.clone();
+
+    for i in 0..balls.len() {
+        for j in 1..balls.len() {
+            if i != j {
+                let velocity_1 = balls2[j].vector;
+                let velocity_2 = balls2[i].vector;
+                let mass_1 = balls2[j].mass;
+                let mass_2 = balls2[i].mass;
+                let position_1 = [balls2[j].position_x, balls2[j].position_y];
+                let position_2 = [balls2[i].position_x, balls2[i].position_y];
+                //if the distance between the balls is less than the sum of their radii and the space between them isn't increasing
+                // velocity_1.dot(&velocity_2) <= 0.0 &&
+
+                if ((position_1[0] - position_2[0]).powi(2)
+                    + (position_1[1] - position_2[1]).powi(2))
+                    <= (mass_1 + mass_2).powi(2)
+                {
+                    //calculate the new vectors
+                    let mut unit_normal = Vector {
+                        x: position_1[0] - position_2[0],
+                        y: position_1[1] - position_2[1],
+                    };
+                    unit_normal.normalize();
+                    let unit_tangent = Vector {
+                        x: -unit_normal.y,
+                        y: unit_normal.x,
+                    };
+                    let velocity_1_tangent = velocity_1.dot(&unit_tangent);
+                    let velocity_2_tangent = velocity_2.dot(&unit_tangent);
+                    let velocity_1_normal = velocity_1.dot(&unit_normal);
+                    let velocity_2_normal = velocity_2.dot(&unit_normal);
+                    let v_prime_1_tangent = velocity_1_tangent;
+                    let v_prime_2_tangent = velocity_2_tangent;
+
+                    let v_prime_1_normal = (velocity_1_normal * (mass_1 - mass_2)
+                        + 2.0 * mass_2 * velocity_2_normal)
+                        / (mass_1 + mass_2);
+                    let v_prime_2_normal = (velocity_2_normal * (mass_2 - mass_1)
+                        + 2.0 * mass_1 * velocity_1_normal)
+                        / (mass_1 + mass_2);
+                    let mut out_norm_1 = unit_normal.multiply_out(&v_prime_1_normal);
+                    let mut out_norm_2 = unit_normal.multiply_out(&v_prime_2_normal);
+                    let out_tan_1 = unit_tangent.multiply_out(&v_prime_1_tangent);
+                    let out_tan_2 = unit_tangent.multiply_out(&v_prime_2_tangent);
+
+                    out_norm_1.add(&out_tan_1);
+                    out_norm_2.add(&out_tan_2);
+                    balls[j].vector = out_norm_1;
+                    balls[i].vector = out_norm_2;
+                }
+            }
+        }
+    }
+    true
+}
+
 fn update(balls: &mut Vec<Ball>, dt: f32) -> bool {
-    let var = handle_balls(balls);
+    let var = handle_balls_2(balls);
     for ball in balls {
         ball.walk(dt);
         ball.handle_walls(WINDOW_DIMENSTIONS);
