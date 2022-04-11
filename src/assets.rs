@@ -163,6 +163,13 @@ impl Ball {
                 (self.position_y + self.vector.y * self.speed) as i32,
                 Color::GREEN,
             );
+            d.draw_text(
+                &self.num.to_string(),
+                self.position_x as i32 - 10,
+                self.position_y as i32 - 10,
+                20,
+                Color::BLACK,
+            );
 
             if axis_variable {
                 d.draw_line(
