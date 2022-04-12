@@ -206,14 +206,14 @@ fn sweep_and_prune(balls: &mut Vec<Ball>) -> (Vec<Vec<usize>>, bool) {
         ];
         for i in 0..balls.len() {
             let b = &balls[i];
-            if b.position_x - b.mass <= act_int[1] {
+            let ball_interval = [b.position_x - b.mass, b.position_x + b.mass];
+            if ball_interval[0] <= act_int[1] {
                 added.push(i.clone());
-                act_int[1] = b.position_x + b.mass;
+                act_int[1] = ball_interval[1] + 5.0;
             } else {
                 out.push(added.clone());
                 added = Vec::new();
-                act_int[0] = b.position_x - b.mass;
-                act_int[1] = b.position_x + b.mass;
+                act_int = [ball_interval[0] - 5.0, ball_interval[1] + 5.0];
             }
         }
 
@@ -249,6 +249,8 @@ fn sweep_and_prune(balls: &mut Vec<Ball>) -> (Vec<Vec<usize>>, bool) {
 fn handle_balls(balls: &mut Vec<Ball>) -> bool {
     let (collisions, var) = sweep_and_prune(balls);
     let balls2 = balls.clone();
+    let mut collided: Vec<[u32; 2]> = vec![]; //debug variable
+
     //loop over collisions and extract the balls that are colliding from balls2[]
     //then calculate the new vectors for those balls
     //then apply those vectors to the balls
@@ -275,19 +277,19 @@ fn handle_balls(balls: &mut Vec<Ball>) -> bool {
                         + (position_1[1] - position_2[1]).powi(2))
                         <= (mass_1 + mass_2).powi(2)
                     {
-                        if var {
-                            print!("x ");
-                        } else {
-                            print!("y ");
-                        }
-                        println!(
-                            "collision between nums {}, {} at indeces {},{}, collision length {}",
-                            balls2[collision[i]].num,
-                            balls2[collision[j]].num,
-                            collision[i],
-                            collision[j],
-                            collision.len()
-                        );
+                        // if var {
+                        // print!("x ");
+                        // } else {
+                        // print!("y ");
+                        // }
+                        // println!(
+                        // "collision between nums {}, {} at indeces {},{}, collision length {}",
+                        // balls2[collision[i]].num,
+                        // balls2[collision[j]].num,
+                        // collision[i],
+                        // collision[j],
+                        // collision.len()
+                        // );
                         //calculate the new vectors
                         let mut unit_normal = Vector {
                             x: position_1[0] - position_2[0],
@@ -325,6 +327,33 @@ fn handle_balls(balls: &mut Vec<Ball>) -> bool {
                         out_norm_2.normalize();
                         balls[collision[i]].vector = out_norm_1;
                         balls[collision[j]].vector = out_norm_2;
+                        if DEBUG {
+                            collided.push([balls[collision[i]].num, balls[collision[j]].num]);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    if DEBUG {
+        for i in 0..balls2.len() {
+            for j in 0..balls2.len() {
+                if i != j {
+                    let ball = &balls2[i];
+                    let other = &balls2[j];
+                    //see if they're actually colliding
+                    if (ball.position_x - other.position_x).powi(2)
+                        + (ball.position_y - other.position_y).powi(2)
+                        <= (ball.mass + other.mass).powi(2)
+                    {
+                        //see if the collision was detected in the previous loop
+                        if !collided.contains(&[ball.num, other.num]) {
+                            println!(
+                                "collision between nums {}, {} not detected at indeces {},{}, ",
+                                ball.num, other.num, i, j
+                            );
+                        }
                     }
                 }
             }
